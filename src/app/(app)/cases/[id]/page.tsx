@@ -59,7 +59,7 @@ const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
 };
 const QUOTE_STATUS: Record<string, { label: string; cls: string }> = {
   draft: { label: "下書き", cls: "gray" },
-  confirmed: { label: "新郎新婦 確認済", cls: "amber" },
+  confirmed: { label: "お客様 確認済", cls: "amber" },
   approved: { label: "承認済", cls: "green" },
   archived: { label: "アーカイブ", cls: "gray" },
 };

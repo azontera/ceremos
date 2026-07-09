@@ -122,6 +122,11 @@ model Case {
   contractJson   String?
   musicPrefsJson String?   // 楽曲の好み診断（10問＋好きなアーティスト）の回答（おすすめ選曲の精度向上に使用）
   prepJson       String?   // 準備チェックリスト（招待状発送済み等の手動チェック。お客様とプランナーで共有）
+  hearingJson    String?   // AIヒヤリング（診断型）の回答と診断結果。{ groom:{...}, bride:{...}, host:{...}, results:{mbti,fortune,compat,strategy} }
+  lostReason     String?   // 失注理由: price / schedule / competitor / atmosphere / other（status="lost" 時に必須）
+  lostNote       String?   // 失注理由の自由記述
+  lostStep       String?   // 失注時に居た商談ステップkey（sales-steps.ts）
+  lostAt         DateTime? // 失注日時
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
