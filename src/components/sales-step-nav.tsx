@@ -21,6 +21,7 @@ export function SalesStepNav({ steps, currentKey }: { steps: SalesStepState[]; c
             </button>
             {isOpen && (
               <div className="step-body">
+                <button className="step-close" onClick={() => setOpen(null)} title="閉じる">✕</button>
                 <div className="step-goal">{st.goal}</div>
                 <div className="step-hint">{st.hint}</div>
                 {st.talkPoints.length > 0 && (

@@ -3,6 +3,7 @@
 // AIヒヤリングの診断結果から「この顧客にどう売るか」を常時表示する。
 // ヒヤリング未実施のときは実施導線を出す。
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export type StrategyData = {
   typeCard?: { title: string; summary: string; proposals: string[]; ng: string[] };
@@ -16,9 +17,31 @@ export function StrategyPanel({ caseId, isBridalCase, strategy }: {
   isBridalCase: boolean;
   strategy: StrategyData | null;
 }) {
+  // 非表示状態は案件ごとにブラウザへ保存（次回訪問時も閉じたまま）
+  const storageKey = `strategyPanelHidden:${caseId}`;
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => { setHidden(localStorage.getItem(storageKey) === "1"); }, [storageKey]);
+  const setHiddenPersist = (v: boolean) => {
+    setHidden(v);
+    if (v) localStorage.setItem(storageKey, "1"); else localStorage.removeItem(storageKey);
+  };
+
+  if (hidden) {
+    return (
+      <aside className="strategy-panel strategy-panel-collapsed">
+        <button className="strategy-reopen" onClick={() => setHiddenPersist(false)} title="顧客攻略を表示">
+          🎯<span>顧客攻略</span>
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside className="strategy-panel">
-      <div className="step-nav-title">顧客攻略</div>
+      <div className="step-nav-title" style={{ display: "flex", alignItems: "center" }}>
+        顧客攻略
+        <button className="step-close" style={{ position: "static", marginLeft: "auto" }} onClick={() => setHiddenPersist(true)} title="閉じる">✕</button>
+      </div>
       {!strategy ? (
         <div className="card" style={{ padding: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>🔮 ヒヤリング未実施</div>
