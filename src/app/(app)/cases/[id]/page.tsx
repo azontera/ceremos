@@ -33,6 +33,7 @@ import { SalesStepNav } from "@/components/sales-step-nav";
 import { StrategyPanel, type StrategyData } from "@/components/strategy-panel";
 import { computeSalesSteps } from "@/lib/sales-steps";
 import { isBridal } from "@/lib/terms";
+import { resolveCoupleSide } from "@/lib/couple-side";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -162,6 +163,16 @@ export default async function CaseDetailPage({
     "見積承認": "quotes", "発注確定": "orders",
     "楽曲決定": "songs", "席次確定": "seating", "進行表作成": "rundown",
   };
+
+  // お客様の席次担当（新郎側/新婦側の分担入力。判定不能なら両方編集可）
+  let mySeatingSide: "groom" | "bride" | null = null;
+  if (s.role === "couple" && isBridal(c.caseType)) {
+    const [meUser, myMember] = await Promise.all([
+      prisma.user.findUnique({ where: { id: s.userId }, select: { name: true, profileJson: true } }),
+      prisma.caseMember.findFirst({ where: { caseId: c.id, userId: s.userId }, select: { roleInCase: true } }),
+    ]);
+    if (meUser) mySeatingSide = resolveCoupleSide(meUser, c, myMember?.roleInCase);
+  }
 
   // 商談ステップナビ＋顧客攻略パネル（コックピット両翼・スタッフのみ）
   let strategy: StrategyData | null = null;
@@ -474,7 +485,8 @@ export default async function CaseDetailPage({
       )}
 
       <div className="section-h" id="seating" style={{ marginTop: 24 }}><h2>🪑 席次表</h2></div>
-      <SeatingPanel caseId={c.id} canEdit={can(s.role, "seating", "edit")} canHall={can(s.role, "cases", "edit")} guestCount={c.guestCount} relations={relationOptions} />
+      <SeatingPanel caseId={c.id} canEdit={can(s.role, "seating", "edit")} canHall={can(s.role, "cases", "edit")} guestCount={c.guestCount} relations={relationOptions}
+        lockSide={mySeatingSide} />
 
       <div className="section-h" id="rundown" style={{ marginTop: 24 }}><h2>📋 進行表</h2></div>
       <RundownEditor

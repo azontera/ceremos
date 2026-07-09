@@ -44,9 +44,11 @@ function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNa
   // メニューシートに出す残りのリンク
   const menuLinks: [string, string][] = [
     ...(role === "couple" && coupleCaseId ? [
-      [`/cases/${coupleCaseId}?tab=catalog`, "🛍 カタログ（ドレス・引出物）"],
-      [`/cases/${coupleCaseId}?tab=seating`, "🪑 席次表・ゲスト"],
+      [`/cases/${coupleCaseId}?tab=quotes`, "💰 お見積り・お支払い"],
+      [`/cases/${coupleCaseId}?tab=rundown`, "📋 当日の流れ"],
+      [`/cases/${coupleCaseId}?tab=songs`, "🎵 楽曲をえらぶ"],
       [`/cases/${coupleCaseId}?tab=chat`, "💬 プランナーに相談"],
+      ["/survey", "📝 事前アンケート"],
     ] as [string, string][] : []),
     ...(isStaff3 ? [
       ["/customers", "💐 顧客マスタ"],
@@ -95,11 +97,11 @@ function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNa
       <nav className="mobile-nav">
         {role === "couple" && coupleCaseId ? (
           <>
-            {/* お客様：アプリの主要4タブ＋メニュー */}
+            {/* お客様：ホーム／準備／えらぶ／診断＋メニュー（リニューアル仕様書3.2の5タブ） */}
             {item("/dashboard", "🏠", "ホーム")}
-            {item(`/cases/${coupleCaseId}?tab=quotes`, "💰", "お見積り", undefined, "quotes")}
-            {item(`/cases/${coupleCaseId}?tab=rundown`, "📋", "当日の流れ", undefined, "rundown")}
-            {item(`/cases/${coupleCaseId}?tab=songs`, "🎵", "楽曲", undefined, "songs")}
+            {item(`/cases/${coupleCaseId}?tab=seating`, "📋", "準備", undefined, "seating")}
+            {item(`/cases/${coupleCaseId}?tab=catalog`, "👗", "えらぶ", undefined, "catalog")}
+            {item(`/cases/${coupleCaseId}/hearing`, "🔮", "診断")}
           </>
         ) : (
           <>

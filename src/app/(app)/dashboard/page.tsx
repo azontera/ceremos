@@ -3,14 +3,17 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDashboard } from "@/lib/queries";
-import { daysUntil, ddayLabel } from "@/lib/progress";
+import { daysUntil, ddayLabel, computeProgress } from "@/lib/progress";
 import { timeRangeLabel } from "@/lib/case-time";
 import { typeMeta, caseLabel } from "@/lib/case-types";
 import { CustomerWizard } from "@/components/customer-wizard";
 import { cleanupExpiredSongMedia } from "@/lib/cleanup";
+import { resolveCoupleSide } from "@/lib/couple-side";
+import { t as term, isBridal } from "@/lib/terms";
 
 // お客様専用ホーム：概要・楽曲・席次表・チャット・ヒヤリングへの入り口
 async function CustomerHome({ userId, name }: { userId: string; name: string }) {
+  const me = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, profileJson: true } });
   const memberships = await prisma.caseMember.findMany({
     where: { userId, user: { role: "couple" } },
     include: {
@@ -19,12 +22,21 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
           banquetVenue: true,
           planner: { select: { name: true } },
           meetings: { orderBy: { heldAt: "desc" }, take: 5 },
-          quotes: { select: { id: true }, take: 1 }, // ウィザード表示判定（見積が無ければ新規プランづくりを案内）
+          quotes: { select: { id: true, status: true } },
+          tasks: { where: { status: { not: "done" } }, orderBy: { dueAt: "asc" } },
+          guests: { select: { side: true, tableId: true, seatObjectId: true } },
+          orders: { select: { status: true } },
+          songs: { select: { id: true, title: true } },
+          rundownItems: { select: { id: true } },
         },
       },
     },
   });
-  const cases = memberships.map((m) => m.case).sort((a, b) => a.weddingDate.getTime() - b.weddingDate.getTime());
+  const cases = memberships.map((m) => ({ ...m.case, roleInCase: m.roleInCase }))
+    .sort((a, b) => a.weddingDate.getTime() - b.weddingDate.getTime());
+  // アンケート回答済みか（profileJson.survey）
+  let surveyDone = false;
+  try { surveyDone = Object.values(JSON.parse(me?.profileJson ?? "{}").survey ?? {}).some((v) => String(v ?? "").trim()); } catch { /* ignore */ }
 
   return (
     <>
@@ -42,6 +54,53 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
         const meta = typeMeta(c.caseType);
         const nextMeeting = c.meetings.map((m) => m.nextAt).filter((x): x is Date => !!x && x > new Date())
           .sort((a, b) => a.getTime() - b.getTime())[0];
+        // ---- タスクフィード（スマホの「今やること」カード）----
+        const bridal = isBridal(c.caseType);
+        const mySide = bridal && me ? resolveCoupleSide(me, c, c.roleInCase) : null;
+        const progress = computeProgress({
+          meetingsCount: c.meetings.length, quotes: c.quotes, orders: c.orders,
+          songsCount: c.songs.length, guests: c.guests, rundownCount: c.rundownItems.length,
+        });
+        let myHearingDone = false;
+        try {
+          const h = JSON.parse(c.hearingJson ?? "{}");
+          const key = bridal ? (mySide ?? "groom") : "host";
+          myHearingDone = Object.keys(h.answers?.[key] ?? {}).length > 0;
+        } catch { /* ignore */ }
+        const sideLabel = mySide ? term(mySide === "groom" ? "groomSide" : "brideSide", c.caseType) : null;
+        const myGuests = mySide ? c.guests.filter((g) => g.side === mySide).length : c.guests.length;
+        const latestQuote = c.quotes[c.quotes.length - 1];
+        type Feed = { icon: string; title: string; desc: string; href: string; urgent?: boolean };
+        const feed: Feed[] = [
+          ...(!myHearingDone ? [{
+            icon: "🔮", title: bridal ? "ふたりの結婚式診断に答える" : "ご宴会ヒヤリングに答える",
+            desc: "10〜15分の楽しい診断です。回答から最適なプランをおつくりします",
+            href: `/cases/${c.id}/hearing`, urgent: true,
+          }] : []),
+          ...c.tasks.map((tk) => ({
+            icon: "📌", title: tk.title,
+            desc: tk.dueAt ? `期限：${tk.dueAt.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}` : "プランナーからの宿題です",
+            href: `/cases/${c.id}`,
+            urgent: !!tk.dueAt && tk.dueAt < new Date(Date.now() + 3 * 86400000),
+          })),
+          ...(latestQuote?.status === "draft" ? [{
+            icon: "💰", title: "お見積りのご確認", desc: "新しいお見積りが届いています",
+            href: `/cases/${c.id}?tab=quotes`,
+          }] : []),
+          ...(myGuests === 0 ? [{
+            icon: "🪑", title: sideLabel ? `${sideLabel}ゲストのご入力（あなたの担当）` : `${term("guests", c.caseType)}のご入力`,
+            desc: bridal ? "おふたりで分担してゲストを登録しましょう" : "参加者リストを登録しましょう",
+            href: `/cases/${c.id}?tab=seating`,
+          }] : []),
+          ...(!surveyDone ? [{
+            icon: "📝", title: "事前アンケートに答える", desc: "お好みやご希望を教えてください",
+            href: "/survey",
+          }] : []),
+          ...(c.songs.filter((sg) => sg.title && sg.title !== "（曲未定）").length < 5 && c.rundownItems.length > 0 ? [{
+            icon: "🎵", title: "楽曲をえらぶ", desc: "おすすめから視聴して決められます",
+            href: `/cases/${c.id}?tab=songs`,
+          }] : []),
+        ];
         return (
           <div className="card" key={c.id} style={{ padding: "20px 24px", marginBottom: 16 }}>
             <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
@@ -61,6 +120,31 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
                 </div>
               </div>
             </div>
+            {/* 準備完了度（触るほど進む実感を出すゲージ） */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{term("prep", c.caseType)}</span>
+              <div className="progress" style={{ flex: 1 }}><span style={{ width: `${progress.percent}%` }} /></div>
+              <b style={{ fontSize: 14, color: "var(--accent-text)" }}>{progress.percent}%</b>
+            </div>
+
+            {/* 今やることフィード */}
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text3)", letterSpacing: ".08em", marginBottom: 6 }}>今やること</div>
+              {feed.length === 0 ? (
+                <div className="empty" style={{ padding: 12 }}>🎉 いま対応いただくことはありません。準備は順調です！</div>
+              ) : feed.slice(0, 5).map((f, i) => (
+                <Link key={i} href={f.href} className="list-row" style={{ textDecoration: "none" }}>
+                  <span style={{ fontSize: 20 }}>{f.icon}</span>
+                  <div className="t">
+                    <b>{f.title}</b>
+                    <span>{f.desc}</span>
+                  </div>
+                  {f.urgent && <span className="pill red">お早めに</span>}
+                  <span style={{ color: "var(--text3)" }}>→</span>
+                </Link>
+              ))}
+            </div>
+
             {/* やることメニュー（PCのみ。スマホは下部ナビ＋☰メニューに集約し、重複導線を出さない） */}
             <div className="pc-only" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, marginTop: 16 }}>
               {([

@@ -17,8 +17,8 @@ const TABLE_SIZES: [number, string][] = [
 ];
 
 export function SeatingPanel({
-  caseId, canEdit: canEditProp, canHall, guestCount, relations,
-}: { caseId: string; canEdit: boolean; canHall: boolean; guestCount: number; relations?: string[] }) {
+  caseId, canEdit: canEditProp, canHall, guestCount, relations, lockSide,
+}: { caseId: string; canEdit: boolean; canHall: boolean; guestCount: number; relations?: string[]; lockSide?: "groom" | "bride" | null }) {
   const RELATIONS = relations && relations.length > 0 ? relations : DEFAULT_RELATIONS;
   // ✏ 編集モード：「編集する」を押すまでレイアウトはロック（誤ドラッグ防止）。「抜ける」で閲覧に戻る
   // 以降の canEdit はすべて「編集権限あり かつ 編集モード中」を意味する
@@ -366,7 +366,7 @@ export function SeatingPanel({
       </div>
       {/* 📱 かんたん入力（スマホ最適化）：名前を入力しながら卓・席をその場で指定 */}
       {simpleMode && (
-        <MobileSeating caseId={caseId} canEdit={canEditProp} relations={RELATIONS} />
+        <MobileSeating caseId={caseId} canEdit={canEditProp} relations={RELATIONS} lockSide={lockSide} />
       )}
       {!simpleMode && <>
       {err && <div className="form-err" style={{ marginBottom: 10 }}>{err}</div>}

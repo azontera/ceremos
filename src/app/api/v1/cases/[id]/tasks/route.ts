@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessCase, audit } from "@/lib/rbac";
+import { notifyCaseCustomers } from "@/lib/notify";
 
 // POST: タスク（宿題）追加
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -21,5 +22,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   });
   await audit(s.userId, "create", "task", t.id);
+  // スタッフが登録した宿題はお客様へ通知（LINE連携時のみ実送信・未連携なら何もしない）
+  if (s.role !== "couple") {
+    void notifyCaseCustomers(params.id, {
+      title: "新しい宿題が届きました",
+      body: `${t.title}${t.dueAt ? `（期限: ${t.dueAt.toLocaleDateString("ja-JP")}）` : ""}`,
+      href: `/cases/${params.id}`,
+    });
+  }
   return NextResponse.json({ task: t }, { status: 201 });
 }

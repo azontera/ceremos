@@ -10,8 +10,8 @@ type Guest = { id: string; name: string; title: string | null; side: string; rel
 const DEFAULT_RELATIONS = ["親族", "主賓", "上司", "同僚", "友人", "恩師", "その他"];
 
 export function MobileSeating({
-  caseId, canEdit, relations,
-}: { caseId: string; canEdit: boolean; relations?: string[] }) {
+  caseId, canEdit, relations, lockSide,
+}: { caseId: string; canEdit: boolean; relations?: string[]; lockSide?: "groom" | "bride" | null }) {
   const RELATIONS = relations && relations.length > 0 ? relations : DEFAULT_RELATIONS;
   const [tables, setTables] = useState<Table[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -20,7 +20,9 @@ export function MobileSeating({
   const [busy, setBusy] = useState(false);
   // クイック入力フォーム（卓・側・間柄は連続入力のため保持し、名前だけクリア）
   const [name, setName] = useState("");
-  const [side, setSide] = useState<"groom" | "bride">("groom");
+  const [side, setSide] = useState<"groom" | "bride">(lockSide ?? "groom");
+  // 担当分担（お客様は自分の側のゲストだけ編集できる。相手側は閲覧のみ）
+  const canTouch = (g: Guest) => canEdit && (!lockSide || g.side === lockSide);
   const [relation, setRelation] = useState("友人");
   const [tableId, setTableId] = useState("");   // ""=未割当
   const [seatNo, setSeatNo] = useState("");     // ""=自動
@@ -97,10 +99,16 @@ export function MobileSeating({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) add(); }} />
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+            {lockSide ? (
+              <span className={`pill ${lockSide === "groom" ? "blue" : "accent"}`} style={{ padding: "7px 14px" }}>
+                {lockSide === "groom" ? "🤵 新郎側（あなたの担当）" : "👰 新婦側（あなたの担当）"}
+              </span>
+            ) : (<>
             <button type="button" className={`pill ${side === "groom" ? "blue" : "gray"}`} style={{ cursor: "pointer", border: "none", padding: "7px 14px" }}
               onClick={() => setSide("groom")}>🤵 新郎側</button>
             <button type="button" className={`pill ${side === "bride" ? "accent" : "gray"}`} style={{ cursor: "pointer", border: "none", padding: "7px 14px" }}
               onClick={() => setSide("bride")}>👰 新婦側</button>
+            </>)}
             <select className="form-input" style={{ padding: "7px 10px", flex: 1, minWidth: 90 }} value={relation}
               onChange={(e) => setRelation(e.target.value)}>
               {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -148,7 +156,7 @@ export function MobileSeating({
             <div className="card-b" style={{ padding: "6px 14px 10px" }}>
               {gs.length === 0 && <div className="empty" style={{ padding: 8 }}>まだゲストがいません</div>}
               {gs.map((g) => (
-                <GuestRow key={g.id} g={g} tables={tables} canEdit={canEdit}
+                <GuestRow key={g.id} g={g} tables={tables} canEdit={canTouch(g)}
                   editing={editingGuest === g.id}
                   onEdit={() => setEditingGuest(editingGuest === g.id ? null : g.id)}
                   onMove={(tid) => { setEditingGuest(null); op({ op: "updateGuest", guestId: g.id, tableId: tid }); }}
@@ -169,7 +177,7 @@ export function MobileSeating({
           <div className="card-h" style={{ padding: "10px 14px" }}>📥 卓が未定のゲスト<span className="pill amber">{unassigned.length}名</span></div>
           <div className="card-b" style={{ padding: "6px 14px 10px" }}>
             {unassigned.map((g) => (
-              <GuestRow key={g.id} g={g} tables={tables} canEdit={canEdit}
+              <GuestRow key={g.id} g={g} tables={tables} canEdit={canTouch(g)}
                 editing={editingGuest === g.id}
                 onEdit={() => setEditingGuest(editingGuest === g.id ? null : g.id)}
                 onMove={(tid) => { setEditingGuest(null); op({ op: "updateGuest", guestId: g.id, tableId: tid }); }}

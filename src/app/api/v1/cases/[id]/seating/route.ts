@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { can, canAccessCase, audit } from "@/lib/rbac";
+import { resolveCoupleSide } from "@/lib/couple-side";
 
 // 席次表：新郎新婦とプランナーが共同編集する（seating 権限）
 
@@ -50,6 +51,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   const b = await req.json().catch(() => ({}));
   const caseId = params.id;
+
+  // 担当分担の強制（リニューアル仕様書3.3）：お客様は自分の側（新郎側/新婦側）のゲストのみ操作可
+  let coupleSide: "groom" | "bride" | null = null;
+  if (s.role === "couple") {
+    const [u, cs, m] = await Promise.all([
+      prisma.user.findUnique({ where: { id: s.userId }, select: { name: true, profileJson: true } }),
+      prisma.case.findUnique({ where: { id: caseId }, select: { groomName: true, brideName: true, caseType: true } }),
+      prisma.caseMember.findFirst({ where: { caseId, userId: s.userId }, select: { roleInCase: true } }),
+    ]);
+    if (u && cs && (cs.caseType === "wedding" || !cs.caseType)) coupleSide = resolveCoupleSide(u, cs, m?.roleInCase);
+  }
+  const sideForbidden = async (guestId: string | undefined): Promise<boolean> => {
+    if (!coupleSide || !guestId) return false;
+    const g = await prisma.guest.findFirst({ where: { id: guestId, caseId }, select: { side: true } });
+    return !!g && g.side !== coupleSide;
+  };
 
   try {
     switch (b.op) {
@@ -129,7 +146,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             caseId,
             name: b.name.trim(),
             title: b.title?.trim() || null,
-            side: b.side === "bride" ? "bride" : "groom",
+            side: coupleSide ?? (b.side === "bride" ? "bride" : "groom"),
             relation: b.relation?.trim() || "友人",
             tableId: b.seatObjectId ? null : (b.tableId || null),
             seatNo,
@@ -142,6 +159,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
       case "updateGuest": {
         if (!b.guestId) return NextResponse.json({ error: "guestId が必要です" }, { status: 400 });
+        if (await sideForbidden(b.guestId)) {
+          return NextResponse.json({ error: "お相手さまの担当ゲストは編集できません（閲覧のみ）" }, { status: 403 });
+        }
+        if (coupleSide && b.side !== undefined && b.side !== coupleSide) {
+          return NextResponse.json({ error: "側の変更はプランナーにご相談ください" }, { status: 403 });
+        }
         // 卓の定員チェック
         if (b.tableId) {
           const [table, count] = await Promise.all([
@@ -192,6 +215,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ ok: true });
       }
       case "deleteGuest": {
+        if (await sideForbidden(b.guestId)) {
+          return NextResponse.json({ error: "お相手さまの担当ゲストは削除できません（閲覧のみ）" }, { status: 403 });
+        }
         await prisma.guest.deleteMany({ where: { id: b.guestId, caseId } });
         await audit(s.userId, "delete", "guest", b.guestId);
         return NextResponse.json({ ok: true });
