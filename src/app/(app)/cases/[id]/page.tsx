@@ -28,28 +28,13 @@ import { BillingPanel } from "@/components/billing-panel";
 import { CustomerAccountPanel } from "@/components/customer-account-panel";
 import { CaseInfoCard } from "@/components/case-info-card";
 import { DayVenueChart } from "@/components/day-venue-chart";
+import { SectionModal, OpenSectionButton } from "@/components/section-modal";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// 「案件カード」= 1案件=1枚の長いカード。タブ切り替えは廃止し、すべてのセクションを常に表示する
+// 「案件カード」= 1案件=1枚のページ。各セクションは要約カード＋ボタンで表示し、押すとモーダルで開く
 // （実際の業務の時系列順：打ち合わせ → 見積 → カタログ → 発注 → 料理・楽曲・席次 → 進行表 → 当日リソース → 請求）
-const SECTIONS = [
-  { key: "meetings", label: "📝 打ち合わせ" },
-  { key: "quotes", label: "💰 見積" },
-  { key: "catalog", label: "🛍 カタログ" },
-  { key: "orders", label: "📦 発注" },
-  { key: "meals", label: "🍽 料理" },
-  { key: "seating", label: "🪑 席次表" },
-  { key: "rundown", label: "📋 進行表" },
-  { key: "songs", label: "🎵 楽曲" },
-  { key: "resources", label: "🏛 リソース" },
-  { key: "billing", label: "💴 請求・入金" },
-  // チャットは時間軸に依存しないため、セクションではなく右下の常設ドック（ChatDock）から開く
-];
-// お客様に見せるセクション（チャットはドック、ヒヤリングは /survey）
-// 見積・進行表は閲覧専用（確認とコメント＝チャットで）。発注・料理・リソース・請求はスタッフ専用のまま非表示
-const CUSTOMER_SECTIONS = ["meetings", "quotes", "catalog", "rundown", "songs", "seating"];
 
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: "未確定", cls: "red" },
@@ -83,7 +68,6 @@ export default async function CaseDetailPage({
   // 旧リンク互換：?tab=chat はチャットドックを自動で開く
   const chatOpen = searchParams.tab === "chat";
   const isStaff = s.role !== "couple";
-  const visibleSections = isStaff ? SECTIONS : SECTIONS.filter((sec) => CUSTOMER_SECTIONS.includes(sec.key));
 
   const ddays = daysUntil(c.weddingDate);
   const dd = ddayLabel(ddays);
@@ -103,6 +87,7 @@ export default async function CaseDetailPage({
     .filter((x): x is Date => !!x && x > new Date())
     .sort((a, b) => a.getTime() - b.getTime())[0];
   const orders = s.vendorId ? c.orders.filter((o) => o.vendorId === s.vendorId) : c.orders;
+  const latestQuote = c.quotes.slice().sort((a, b) => b.version - a.version)[0];
 
   // 案件カードは全セクションを常に表示するため、必要なデータはすべてここでまとめて取得する
   const [
@@ -154,20 +139,17 @@ export default async function CaseDetailPage({
 
   return (
     <>
-      <div className="section-h">
+      <div className="section-h" style={{ marginBottom: 4 }}>
         <Link href="/cases" className="btn sm">← 一覧</Link>
-        <h2>{c.brideName === "―" ? c.groomName : `${c.groomName} & ${c.brideName}`}</h2>
+      </div>
+      <div className="section-h" style={{ flexWrap: "wrap", marginTop: 2 }}>
+        <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.01em" }}>
+          {c.brideName === "―" ? c.groomName : `${c.groomName} & ${c.brideName}`}
+        </h1>
         {c.caseType !== "wedding" && <span className="pill blue">{meta.emoji} {meta.label}</span>}
         {c.status === "tentative" && <span className="pill violet">仮予約</span>}
         <span className={`dday ${dd.cls}`}>{dd.text}</span>
         <span className="pill gray">{c.guestCount}名</span>
-      </div>
-
-      {/* 案件カード内ジャンプリンク（タブではなく同一ページ内のアンカー。お客様のスマホは下部ナビ導線があるため非表示） */}
-      <div className={s.role === "couple" ? "tabs pc-only" : "tabs"}>
-        {visibleSections.map((sec) => (
-          <a key={sec.key} href={`#${sec.key}`}>{sec.label}</a>
-        ))}
       </div>
 
       {/* ヒーロー：カウントダウン・進捗・クイック操作 */}
@@ -195,7 +177,7 @@ export default async function CaseDetailPage({
         {isStaff && (
           <div className="quick-actions">
             <Link className="btn" href={`/cases/${c.id}?tab=chat`}>💬 チャット</Link>
-            <a className="btn" href="#rundown">📋 進行表</a>
+            <OpenSectionButton id="rundown">📋 進行表</OpenSectionButton>
             {ddays >= 0 && ddays <= 1 && <a className="btn primary" href={`/live/${c.id}`}>▶ 当日運営</a>}
             <a className="btn" href={`/print/${c.id}/quote`} target="_blank">🖨 見積書</a>
           </div>
@@ -231,14 +213,14 @@ export default async function CaseDetailPage({
             "楽曲決定": "songs", "席次確定": "seating", "進行表作成": "rundown",
           };
           return (
-            <a key={m.label} href={`#${jump[m.label] ?? "meetings"}`} className="list-row" style={{ cursor: "pointer" }}>
+            <OpenSectionButton key={m.label} id={jump[m.label] ?? "meetings"} className="list-row" style={{ cursor: "pointer", width: "100%", textAlign: "left" }}>
               <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{m.done ? "✅" : "⬜"}</span>
               <div className="t">
                 <b style={m.done ? { color: "var(--text3)" } : {}}>{m.label}</b>
                 <span>{m.hint}</span>
               </div>
               <span style={{ color: "var(--text3)", fontSize: 12 }}>→</span>
-            </a>
+            </OpenSectionButton>
           );
         })}
       </div></div>
@@ -287,8 +269,13 @@ export default async function CaseDetailPage({
       </div></div>
       </div>
 
-      {/* 📝 打ち合わせ記録 */}
-      <div className="section-h" id="meetings" style={{ marginTop: 20 }}><h2>📝 打ち合わせ記録</h2></div>
+      {/* 各セクション：要約カード＋ボタン。押すとモーダルで全体を開く */}
+      <div className="section-summary-list">
+
+      <SectionModal
+        id="meetings" icon="📝" title="打ち合わせ記録"
+        summary={`${c.meetings.length}回実施${nextMeeting ? ` ・ 次回 ${d(nextMeeting)}` : ""}`}
+      >
       <div className="grid" style={{ gap: 14 }}>
         {can(s.role, "meetings", "edit") && (
           <div style={{ display: "flex" }}><MeetingForm caseId={c.id} /></div>
@@ -319,9 +306,17 @@ export default async function CaseDetailPage({
           </div>
         ))}
       </div>
+      </SectionModal>
 
       {/* 💰 見積 */}
-      <div className="section-h" id="quotes" style={{ marginTop: 24 }}><h2>💰 見積</h2></div>
+      <SectionModal
+        id="quotes" icon="💰" title="見積"
+        summary={
+          latestQuote
+            ? `Ver.${latestQuote.version}（${QUOTE_STATUS[latestQuote.status]?.label ?? latestQuote.status}）・ ${yen(latestQuote.total)}`
+            : "見積は未作成"
+        }
+      >
       {/* お客様向け：支払いスケジュールと入金状況（閲覧専用） */}
       {s.role === "couple" && (paymentPlans.length > 0 || invoices.length > 0) && (
         <div className="card" style={{ marginBottom: 14 }}>
@@ -365,15 +360,20 @@ export default async function CaseDetailPage({
           items: q.items.map((i) => ({ id: i.id, name: i.name, category: i.category, qty: i.qty, unitPrice: i.unitPrice, vendorId: i.vendorId })),
         }))}
       />
+      </SectionModal>
 
       {/* 🛍 カタログ：会場費・ドレス・料理・引き出物・その他をカタログから選んで見積へ（お客様=定価のみ／値引きはプランナー） */}
-      <div className="section-h" id="catalog" style={{ marginTop: 24 }}><h2>🛍 カタログ</h2></div>
+      <SectionModal id="catalog" icon="🛍" title="カタログ" summary="会場・ドレス・料理・引き出物などをカタログから選んで見積へ追加">
       <CatalogPanel caseId={c.id} isCouple={s.role === "couple"} categories={quoteCategories}
         canAdd={s.role === "couple" || can(s.role, "quotes", "edit")} />
+      </SectionModal>
 
       {isStaff && (
         <>
-          <div className="section-h" id="orders" style={{ marginTop: 24 }}><h2>📦 発注</h2></div>
+          <SectionModal
+            id="orders" icon="📦" title="発注"
+            summary={`${orders.filter((o) => o.status !== "pending").length}/${orders.length}件確定`}
+          >
           <OrdersPanel
             caseId={c.id}
             canEdit={can(s.role, "orders", "edit")}
@@ -385,21 +385,24 @@ export default async function CaseDetailPage({
               vendorName: o.vendor?.name ?? null,
             }))}
           />
+          </SectionModal>
 
-          <div className="section-h" id="meals" style={{ marginTop: 24 }}><h2>🍽 料理</h2></div>
+          <SectionModal id="meals" icon="🍽" title="料理" summary={`アレルギー・要望 ${c.mealReqs.length}件`}>
           <MealsPanel
             caseId={c.id}
             canEdit={can(s.role, "meals", "edit") || can(s.role, "cases", "edit")}
             reqs={c.mealReqs.map((m) => ({ id: m.id, guestLabel: m.guestLabel, type: m.type, detail: m.detail }))}
             menuItems={menuItems}
           />
+          </SectionModal>
         </>
       )}
 
-      <div className="section-h" id="seating" style={{ marginTop: 24 }}><h2>🪑 席次表</h2></div>
+      <SectionModal id="seating" icon="🪑" title="席次表" summary={`${c.guests.length}/${c.guestCount}名 着席`}>
       <SeatingPanel caseId={c.id} canEdit={can(s.role, "seating", "edit")} canHall={can(s.role, "cases", "edit")} guestCount={c.guestCount} relations={relationOptions} />
+      </SectionModal>
 
-      <div className="section-h" id="rundown" style={{ marginTop: 24 }}><h2>📋 進行表</h2></div>
+      <SectionModal id="rundown" icon="📋" title="進行表" summary={`${c.rundownItems.length}項目`}>
       <RundownEditor
         caseId={c.id}
         canEdit={can(s.role, "rundown", "edit")}
@@ -419,8 +422,9 @@ export default async function CaseDetailPage({
           } : null,
         }))}
       />
+      </SectionModal>
 
-      <div className="section-h" id="songs" style={{ marginTop: 24 }}><h2>🎵 楽曲</h2></div>
+      <SectionModal id="songs" icon="🎵" title="楽曲" summary={`${c.songs.length}曲`}>
       <SongsPanel
         caseId={c.id}
         canEdit={can(s.role, "songs", "edit")}
@@ -442,16 +446,15 @@ export default async function CaseDetailPage({
           };
         })}
       />
+      </SectionModal>
 
       {isStaff && (() => {
         // 当日の式場の動き（施設・設備・スタッフ・お客様の進行）を1日バーチャートで
         const iso = `${c.weddingDate.getFullYear()}-${String(c.weddingDate.getMonth() + 1).padStart(2, "0")}-${String(c.weddingDate.getDate()).padStart(2, "0")}`;
+        const unpaidCount = invoices.filter((i) => i.status !== "paid").length;
         return (
           <>
-            <div className="section-h" id="resources" style={{ marginTop: 24, marginBottom: 8 }}>
-              <h2>🏛 リソース</h2>
-              <span style={{ fontSize: 11.5, color: "var(--text3)" }}>施設・設備・スタッフ・お客様の進行を1本の時間軸で確認</span>
-            </div>
+            <SectionModal id="resources" icon="🏛" title="リソース" summary="施設・設備・スタッフ・お客様の進行を1本の時間軸で確認">
             <DayVenueChart dateISO={iso} />
             <div style={{ height: 14 }} />
             <AssignmentsPanel
@@ -467,8 +470,12 @@ export default async function CaseDetailPage({
                 startsAt: a.startsAt.toISOString(), endsAt: a.endsAt.toISOString(),
               }))}
             />
+            </SectionModal>
 
-            <div className="section-h" id="billing" style={{ marginTop: 24 }}><h2>💴 請求・入金</h2></div>
+            <SectionModal
+              id="billing" icon="💴" title="請求・入金"
+              summary={invoices.length === 0 ? "請求はまだありません" : `請求${invoices.length}件・未入金${unpaidCount}件`}
+            >
             <BillingPanel
               caseId={c.id}
               canEdit={can(s.role, "quotes", "edit")}
@@ -482,10 +489,12 @@ export default async function CaseDetailPage({
               }))}
               customerName={c.brideName !== "―" ? `${c.groomName}・${c.brideName} 様` : `${c.groomName} 様`}
             />
+            </SectionModal>
           </>
         );
       })()}
 
+      </div>
       {/* チャットドック：右下に常設 */}
       <ChatDock caseId={c.id} meId={s.userId} initialOpen={chatOpen} />
     </>
