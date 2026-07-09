@@ -12,7 +12,7 @@ description: CEREMOS（wedding-erp）の本番デプロイ手順。「デプロ�
 
 ## デプロイコマンド（必ずMacの apple@ プロンプトから。サーバー内で実行しない）
 ```
-rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclude storage --exclude .env --exclude backups ~/Documents/wedding-erp/ ubuntu@os3-376-21308.vs.sakura.ne.jp:~/wedding-erp/ && ssh ubuntu@os3-376-21308.vs.sakura.ne.jp "bash ~/wedding-erp/scripts/server-update.sh" 2>&1 | tail -3
+rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclude storage --exclude .env --exclude backups ~/Documents/wedding-erp/ ubuntu@os3-314-46741.vs.sakura.ne.jp:~/wedding-erp/ && ssh ubuntu@os3-314-46741.vs.sakura.ne.jp "bash ~/wedding-erp/scripts/server-update.sh" 2>&1 | tail -3
 ```
 - **除外リストを絶対に崩さない**（--delete は使用禁止。DB消失事故の教訓）
 - server-update.sh が `prisma db push`・ビルド・pm2 restart を実行する
@@ -24,5 +24,5 @@ rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclu
 4. **一時フラグ確認: DEMO_MODEを本番でONにしない**（2026-07-08〜09残置事故あり。検証は必ずローカルの .env で）
 
 ## 本番サーバー情報
-- Sakura VPS: `ubuntu@os3-376-21308.vs.sakura.ne.jp`（pm2 app名 `wedding-erp`、Caddy HTTPS）
+- Sakura VPS: `ubuntu@os3-314-46741.vs.sakura.ne.jp`（pm2 app名 `wedding-erp`・ポート3200・nginx経由。同居アプリ: lion-app/stagestock/vehicle-inspection）
 - 本番への書き込みコマンドは実行前にユーザーへ提示して承認を得る
