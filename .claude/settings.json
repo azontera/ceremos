@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(node scripts/wipe-all-cases.cjs:*)",
+      "Bash(node scripts/clear-templates.cjs:*)",
+      "Bash(node scripts/restore-db.cjs:*)"
+    ]
+  }
+}
