@@ -248,6 +248,31 @@ export default async function CaseDetailPage({
         )}
       </div>
 
+      {/* 🔮 AIヒヤリング（診断型）ステータス */}
+      {isStaff && (
+        <div className="card" id="hearing" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+          <b style={{ fontSize: 13.5 }}>🔮 AIヒヤリング</b>
+          {strategy ? (
+            <>
+              <span className="pill green">実施済み</span>
+              <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
+                {strategy.typeCard?.title ?? ""} — 診断結果は右の顧客攻略パネルに表示中
+              </span>
+              <a className="btn sm" href={`/api/v1/cases/${c.id}/hearing/md`}>📄 AI生成依頼MD</a>
+              <Link className="btn sm" href={`/cases/${c.id}/hearing`}>再ヒヤリング</Link>
+            </>
+          ) : (
+            <>
+              <span className="pill amber">未実施</span>
+              <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
+                診断型ヒヤリングを実施すると、顧客攻略・テンプレ生成・アップセル提案が使えます
+              </span>
+              <Link className="btn primary sm" href={`/cases/${c.id}/hearing`}>ヒヤリングを開始 →</Link>
+            </>
+          )}
+        </div>
+      )}
+
       {/* 📝 打ち合わせ記録（要約カード＋モーダル） */}
       <SectionModal
         id="meetings" icon="📝" title="打ち合わせ記録"
