@@ -30,6 +30,7 @@ import { CaseInfoCard } from "@/components/case-info-card";
 import { DayVenueChart } from "@/components/day-venue-chart";
 import { SalesStepNav } from "@/components/sales-step-nav";
 import { LostCaseButton } from "@/components/lost-case-button";
+import { AiPlanImport } from "@/components/ai-plan-import";
 import { StrategyPanel, type StrategyData } from "@/components/strategy-panel";
 import { computeSalesSteps } from "@/lib/sales-steps";
 import { isBridal } from "@/lib/terms";
@@ -280,6 +281,8 @@ export default async function CaseDetailPage({
                 {strategy.typeCard?.title ?? ""} — 診断結果は右の顧客攻略パネルに表示中
               </span>
               <a className="btn sm" href={`/api/v1/cases/${c.id}/hearing/md`}>📄 AI生成依頼MD</a>
+              <AiPlanImport caseId={c.id} />
+              <a className="btn sm" href={`/print/${c.id}/fortune`} target="_blank">🖨 診断書（お客様用）</a>
               <Link className="btn sm" href={`/cases/${c.id}/hearing`}>再ヒヤリング</Link>
             </>
           ) : (

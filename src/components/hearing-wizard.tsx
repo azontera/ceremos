@@ -118,6 +118,7 @@ export function HearingWizard({ caseId, caseType, isStaff, initialAnswers }: {
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
           {bridal && <button className="btn" onClick={() => { setPhase("select"); setResults(null); }}>回答者を切り替える</button>}
+          <a className="btn" href={`/print/${caseId}/fortune`} target="_blank">🖨 診断書を見る・印刷</a>
           {isStaff && <a className="btn" href={`/api/v1/cases/${caseId}/hearing/md`}>📄 AI生成依頼MDを出力</a>}
           {isStaff ? <Link className="btn primary" href={`/cases/${caseId}`}>案件に戻る →</Link> : <Link className="btn primary" href="/dashboard">ホームへ →</Link>}
         </div>
