@@ -5,6 +5,13 @@
 
 ---
 
+## 2026-07-09（カタログ再構築・UIリニューアル仕様書v1）
+- **カタログ消失の調査と再構築**：ローカルDBの CatalogItem が0件だったのが原因（ページ・API・導線は無傷。0件だとカタログ画面から品目が全部消える設計）。本番は backups/ 不存在＝削除ボタンの形跡なし・sqlite3未導入のため件数未確認（確認するなら node + Prisma で）。
+  - **`scripts/rebuild-catalog-with-photos.cjs` を新設**：全69品目＋業者10社を、実写真（`catalog-photo-assets-all/` の PNG・manifest.tsv 対応表どおり）つきで一括投入。既存があればスキップ・写真が無ければ写真だけ付ける冪等設計。品目定義は seed-catalog / fill-empty-catalog / restore-dress-catalog / seed-transport / seed-family-attire に準拠して1本に統合。
+  - 検証：投入後 total=69/active=69/写真69枚、`/api/v1/catalog/public` が69件（全件imageIdあり）、/catalog 画面でステップ表示＋実写真レンダリングをブラウザ実機確認。
+- **UI全面リニューアル仕様書 v1 作成**：`docs/リニューアル仕様書_v1.md`（ヒヤリング8問の回答反映済み・寺沢さんレビュー待ち）。UI層のみ刷新／プランナーPC=案件コックピット＋商談ステップナビ＋顧客攻略パネル／お客様=スマホPWA（席次は新郎新婦の担当分担・アンケート別回答）／AIヒヤリング=MBTI+生年月日系+相性診断・MD入出力併用／宴会モード=用語辞書で自動切替／初期テンプレ婚礼10+宴会5。
+- その他：`.claude/launch.json` に autoPort 追加（ポート3000競合時に自動で別ポート起動）。
+
 ## 直近セッションの実装（2026-07-08・カタログ／承認猶予10h／検証モード）
 - **業者カタログ＋出店**：新モデル `CatalogItem`（vendorId=null は式場品目。定価price・desc・isActive・画像=Attachment parentType="catalog"）。出店は**1カテゴリ最大3店舗**（品目POST時にサーバー検証）。API: `GET/POST /api/v1/catalog`、`PATCH/DELETE /api/v1/catalog/[id]`、`POST /api/v1/catalog/[id]/image`（1品目1枚差替）。業者ページ（vendors/[id]）に自社カタログCRUD、admin/settings に式場カタログ（`vendor-catalog.tsx`）
 - **カタログ→見積反映**：案件タブ「🛍 カタログ」（`catalog-panel.tsx`・CUSTOMER_TABSにも追加）。`POST /api/v1/cases/[id]/quotes/catalog-add`＝**お客様も利用可・価格はサーバーでカタログ定価を強制**。最新が下書き→追記（同一品目は数量加算）／確認済・承認済→明細引継ぎの新Ver作成＝「最後の反映が必ず見積カードに載る」。値引きはプランナーが見積編集で
