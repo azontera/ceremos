@@ -578,7 +578,6 @@ export default async function CaseDetailPage({
                 id: i.id, number: i.number, issuedAt: i.issuedAt.toISOString(),
                 dueAt: i.dueAt ? i.dueAt.toISOString() : null, amount: i.amount,
                 status: i.status, paidAt: i.paidAt ? i.paidAt.toISOString() : null, note: i.note,
-                freeeDealId: i.freeeDealId,
               }))}
               customerName={c.brideName !== "―" ? `${c.groomName}・${c.brideName} 様` : `${c.groomName} 様`}
             />

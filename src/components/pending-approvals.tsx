@@ -144,7 +144,7 @@ export function PendingApprovals({
                     {p?.partnerName && <> ＆ {p.partnerName} 様{p.partnerFurigana ? <span style={{ fontWeight: 400, fontSize: 11, color: "var(--text3)" }}>（{p.partnerFurigana}）</span> : null}</>}
                     {!u.emailVerified && <span className="pill red" style={{ marginLeft: 6 }}>メール未認証</span>}
                     {p?.eventType && <span className="pill blue" style={{ marginLeft: 6 }}>{EVENT_TYPE_LABEL[p.eventType] ?? p.eventType} 希望</span>}
-                    {p?.profileComplete === false && <span className="pill amber" style={{ marginLeft: 6 }}>プロフィール未入力（Google仮登録）</span>}
+                    {p?.profileComplete === false && <span className="pill amber" style={{ marginLeft: 6 }}>プロフィール未入力（仮登録）</span>}
                     {(() => { const g = graceLabel(u.createdAt, nowMs); return <span className={`pill ${g.cls}`} style={{ marginLeft: 6 }}>{g.text}</span>; })()}
                   </b>
                   <span>

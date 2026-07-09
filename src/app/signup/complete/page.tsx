@@ -8,7 +8,7 @@ export default function CompleteProfilePage() {
   return <Suspense><CompleteInner /></Suspense>;
 }
 
-// Google認証後の必須プロフィール入力（名前・ふりがな・連絡先・住所）
+// QR登録後の必須プロフィール入力（名前・ふりがな・連絡先・住所）
 function CompleteInner() {
   const token = useSearchParams().get("token") ?? "";
   const [err, setErr] = useState("");
@@ -33,7 +33,7 @@ function CompleteInner() {
   if (!token) {
     return (
       <div className="login-wrap"><div className="login-card">
-        <p>リンクが無効です。もう一度「Googleでログイン」からやり直してください。</p>
+        <p>リンクが無効です。もう一度QRコードからやり直してください。</p>
         <Link className="btn" href="/login">ログイン画面へ</Link>
       </div></div>
     );
@@ -45,7 +45,7 @@ function CompleteInner() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ceremos-mark.svg" alt="CEREMOS" width={52} height={52} />
         <h1 style={{ letterSpacing: ".16em", color: "var(--accent-text)" }}>ご登録ありがとうございます</h1>
-        <p>式場スタッフの承認が完了するとログインいただけます（Googleでログインをご利用ください）。</p>
+        <p>式場スタッフの承認が完了するとログインいただけます。</p>
         {done.surveyToken && (
           <>
             <p style={{ fontSize: 12.5 }}>よろしければ続けて<b>事前アンケート（任意）</b>にご協力ください。</p>
@@ -64,7 +64,7 @@ function CompleteInner() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ceremos-mark.svg" alt="CEREMOS" width={52} height={52} />
         <h1 style={{ letterSpacing: ".16em", color: "var(--accent-text)" }}>あと少しです</h1>
-        <p>Google認証ありがとうございます。ご本人確認のため、以下のご入力をお願いします。</p>
+        <p>ご登録ありがとうございます。ご本人確認のため、以下のご入力をお願いします。</p>
 
         <div className="field">
           <label>ご利用目的 *</label>

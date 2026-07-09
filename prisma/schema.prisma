@@ -500,7 +500,6 @@ model Invoice {
   paidAt   DateTime? // 入金日
   note     String?
   itemsJson String?  // 見積から転記した明細のスナップショット（[{name,category,qty,unitPrice}]）
-  freeeDealId String? // freee会計へ同期済みの取引ID（二重登録防止）
 
   @@index([caseId])
 }

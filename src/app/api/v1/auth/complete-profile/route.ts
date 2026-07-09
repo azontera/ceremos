@@ -3,13 +3,13 @@ import { prisma } from "@/lib/db";
 import { createUserToken, verifyUserToken } from "@/lib/auth";
 import { audit } from "@/lib/rbac";
 
-// POST: Google認証後の必須プロフィール入力（トークン認証・承認前でも実行可）
+// POST: QR登録後の必須プロフィール入力（トークン認証・承認前でも実行可）
 export async function POST(req: NextRequest) {
   const b = await req.json().catch(() => ({}));
   const { token, name, furigana, partnerName, partnerFurigana, birthDate, partnerBirthDate, phone, address, eventType } = b ?? {};
 
   const userId = token ? await verifyUserToken(String(token), "profile") : null;
-  if (!userId) return NextResponse.json({ error: "リンクの有効期限が切れています。もう一度Googleでログインからやり直してください" }, { status: 403 });
+  if (!userId) return NextResponse.json({ error: "リンクの有効期限が切れています。もう一度QRコードからやり直してください" }, { status: 403 });
 
   if (!name?.trim() || !furigana?.trim() || !birthDate || !phone?.trim() || !address?.trim()) {
     return NextResponse.json({ error: "お名前・ふりがな・生年月日・連絡先・ご住所は必須です" }, { status: 400 });

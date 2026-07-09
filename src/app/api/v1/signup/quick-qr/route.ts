@@ -12,6 +12,6 @@ export async function GET(req: NextRequest) {
   if (!can(s.role, "cases", "edit")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const token = await createUserToken(s.userId, "quick-signup", "24h");
   const base = process.env.APP_URL ?? req.nextUrl.origin;
-  // 入口はログイン画面に一本化（Google／メールの2ボタン。QR付きは承認不要）
+  // 入口はログイン画面に一本化（QR付きは承認不要）
   return NextResponse.json({ url: `${base}/login?quick=${encodeURIComponent(token)}` });
 }

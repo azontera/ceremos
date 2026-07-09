@@ -72,7 +72,7 @@ export function CustomerAccountPanel({ accounts }: { accounts: CustomerAccount[]
         </div>
       ))}
       <p style={{ fontSize: 11, color: "var(--text3)", margin: "8px 0 0" }}>
-        ※ メールアドレスを変更するとログインIDも変わります。Googleログインをお使いの場合は新しいメールのGoogleアカウントでログインしていただきます。
+        ※ メールアドレスを変更するとログインIDも変わります。
       </p>
     </div></div>
   );

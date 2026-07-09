@@ -6,7 +6,6 @@ type Plan = { id?: string; label: string; amount: number; dueAt: string | null }
 type Invoice = {
   id: string; number: string; issuedAt: string; dueAt: string | null;
   amount: number; status: string; paidAt: string | null; note: string | null;
-  freeeDealId?: string | null;
 };
 
 const INV_STATUS: Record<string, { label: string; cls: string }> = {
@@ -23,7 +22,7 @@ export function BillingPanel({
   caseId: string; canEdit: boolean;
   plans: Plan[]; invoices: Invoice[];
   approvedTotal: number | null; // 承認済み見積の合計（請求書作成の初期値）
-  customerName?: string; // freee CSV の取引先名
+  customerName?: string; // CSV・請求書印刷の取引先名
 }) {
   const router = useRouter();
   const [err, setErr] = useState("");
@@ -59,47 +58,6 @@ export function BillingPanel({
     setBusy(true);
     if (await call(`/api/v1/cases/${caseId}/payment-plan`, "PUT", { plans: rows })) setEditingPlans(false);
     setBusy(false);
-  }
-
-  // freee API同期：未同期の請求書を freee の収入取引として一括登録
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState("");
-  async function syncFreee() {
-    setSyncing(true); setErr(""); setSyncMsg("");
-    const res = await fetch(`/api/v1/cases/${caseId}/freee-sync`, { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    setSyncing(false);
-    if (!res.ok) {
-      setErr(data.error ?? "freee同期に失敗しました");
-      if (data.needConnect) setSyncMsg("connect");
-      return;
-    }
-    if (data.errors?.length) {
-      setErr(`一部失敗：${data.errors.map((x: { number: string; error: string }) => `${x.number}（${x.error}）`).join("、")}`);
-    }
-    setSyncMsg(data.message ?? `☁ ${data.synced}件を freee（${data.company ?? ""}）に登録しました`);
-    router.refresh();
-  }
-
-  // freee会計「取引インポート」用CSV（収入取引として取り込み → 請求・仕訳はfreee側で管理）
-  function exportFreeeCsv() {
-    const fd = (x: string | null) => (x ? new Date(x).toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "/") : "");
-    const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-    const lines = [
-      "収支区分,管理番号,発生日,決済期日,取引先,勘定科目,税区分,金額,備考",
-      ...invoices.map((inv) => [
-        "収入", inv.number, fd(inv.issuedAt), fd(inv.dueAt),
-        customerName || "ブライダル顧客", "売上高", "課税売上10%",
-        String(inv.amount),
-        `${inv.note ?? ""}${inv.status === "paid" ? "（入金済）" : ""}`,
-      ].map(esc).join(",")),
-    ];
-    const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `freee取引インポート_${customerName || caseId}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
   }
 
   async function createInvoice(e: React.FormEvent<HTMLFormElement>) {
@@ -165,29 +123,8 @@ export function BillingPanel({
         <h2 style={{ fontSize: 16 }}>請求書</h2>
         {unpaid.length > 0 && <span className="pill red">未入金 {unpaid.length}件</span>}
         <div style={{ flex: 1 }} />
-        {invoices.length > 0 && canEdit && (
-          <button className="btn" onClick={syncFreee} disabled={syncing}
-            title="未同期の請求書をfreee会計へ収入取引として自動登録します">
-            {syncing ? "同期中…" : "☁ freeeへ同期"}
-          </button>
-        )}
-        {invoices.length > 0 && (
-          <button className="btn" onClick={exportFreeeCsv}
-            title="freee会計の「取引インポート」で取り込めるCSVをダウンロード">📤 CSV</button>
-        )}
         {canEdit && !creating && <button className="btn primary" onClick={() => setCreating(true)}>＋ 請求書を発行</button>}
       </div>
-
-      {syncMsg === "connect" && (
-        <div className="card" style={{ padding: "10px 16px", marginBottom: 12, borderColor: "var(--amber)" }}>
-          freeeと未連携です。管理者アカウントで
-          <a className="btn sm primary" style={{ margin: "0 8px" }} href="/api/v1/freee/connect">🔗 freeeと連携する</a>
-          を実行してください（freeeのログイン→事業所選択→許可）。
-        </div>
-      )}
-      {syncMsg && syncMsg !== "connect" && (
-        <div className="card" style={{ padding: "10px 16px", marginBottom: 12, borderColor: "var(--green)", fontSize: 13 }}>{syncMsg}</div>
-      )}
 
       {creating && (
         <form className="card" style={{ padding: 16, marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }} onSubmit={createInvoice}>
@@ -233,7 +170,6 @@ export function BillingPanel({
                   <td>
                     <span className={`pill ${st.cls}`}>{st.label}</span>
                     {inv.status === "paid" && inv.paidAt && <span style={{ fontSize: 11, color: "var(--text3)", marginLeft: 6 }}>{d(inv.paidAt)}</span>}
-                    {inv.freeeDealId && <span className="pill blue" style={{ marginLeft: 6 }} title={`freee取引ID: ${inv.freeeDealId}`}>☁ freee済</span>}
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <a className="btn sm" href={`/print/${caseId}/invoice?inv=${inv.id}`} target="_blank">🖨 印刷</a>{" "}
