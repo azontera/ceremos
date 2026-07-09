@@ -43,6 +43,7 @@ export const dynamic = "force-dynamic";
 // スタッフ: 案件（情報・ToDo・リソース）／打ち合わせ／みつもり（カタログ・発注・料理・請求）／席次／進行（楽曲）
 const STAFF_TABS = [
   { key: "info", label: "📌 案件" },
+  { key: "steps", label: "🪜 進め方" },
   { key: "meetings", label: "📝 打ち合わせ" },
   { key: "quotes", label: "💰 みつもり" },
   { key: "seating", label: "🪑 席次" },
@@ -221,13 +222,8 @@ export default async function CaseDetailPage({
         )}
       </div>
 
-      {/* 案件コックピット：左=商談ステップナビ／中央=作業エリア／右=顧客攻略パネル（スタッフのみ3ペイン） */}
+      {/* 中央=作業エリアを最大幅に／右=顧客攻略パネル（折りたたみ時は自動で中央が広がる）。商談ステップは🪜進め方タブへ */}
       <div className={isStaff ? "cockpit" : ""}>
-      {isStaff && salesSteps && (
-        <div className="cockpit-left">
-          <SalesStepNav steps={salesSteps.steps} currentKey={salesSteps.currentKey} />
-        </div>
-      )}
       <div className={isStaff ? "cockpit-main" : ""}>
 
       {/* タブバー（1タブ=1業務。お客様のスマホは下部ナビがあるためPCのみ表示） */}
@@ -450,6 +446,16 @@ export default async function CaseDetailPage({
           </>
         );
       })()}
+      </>)}
+
+      {/* ===== 🪜 進め方タブ（商談ステップ・トーク・チェック） ===== */}
+      {isStaff && tab === "steps" && salesSteps && (<>
+      <div className="section-h"><h2>🪜 進め方</h2>
+        <span style={{ fontSize: 11.5, color: "var(--text3)" }}>今どのステップか・次に何をすべきかを確認できます</span>
+      </div>
+      <div className="steps-tab-wrap">
+        <SalesStepNav steps={salesSteps.steps} currentKey={salesSteps.currentKey} />
+      </div>
       </>)}
 
       {/* ===== 💰 みつもりタブ（見積・カタログ・発注・料理・請求） ===== */}

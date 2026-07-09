@@ -35,10 +35,23 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
 
 .app{display:flex;min-height:100vh}
 .sidebar{
-  width:232px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  width:232px;flex:0 0 232px;background:var(--surface);border-right:1px solid var(--border);
   padding:20px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;
-  display:flex;flex-direction:column;gap:2px;z-index:30;
+  display:flex;flex-direction:column;gap:2px;z-index:30;transition:flex-basis .15s,width .15s;
 }
+/* 折りたたみ（中央の作業エリアを広く使うためのリクエスト対応）：アイコンのみの縮小表示 */
+.sidebar-toggle{
+  position:absolute;top:18px;right:-11px;width:22px;height:22px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);color:var(--text3);font-size:11px;
+  display:grid;place-items:center;z-index:31;box-shadow:var(--shadow);
+}
+.sidebar-toggle:hover{color:var(--text);background:var(--surface2)}
+.sidebar.collapsed{width:60px;flex-basis:60px;min-width:60px;padding-left:8px;padding-right:8px;position:relative}
+.sidebar:not(.collapsed){position:relative}
+.sidebar.collapsed .nav-label,.sidebar.collapsed .navlabel,.sidebar.collapsed .logo-img{display:none}
+.sidebar.collapsed .logo{justify-content:center;padding:6px 0 18px}
+.sidebar.collapsed .nav-item{justify-content:center;padding:8px 0}
+.sidebar.collapsed .userchip{justify-content:center;padding:10px 0}
 .logo{display:flex;align-items:center;gap:10px;padding:6px 12px 18px;font-weight:700;font-size:16px}
 .logo .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#c98a9b);display:grid;place-items:center;color:#fff;font-size:15px}
 .logo small{display:block;font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.08em}
@@ -554,15 +567,23 @@ a.list-row:hover{background:var(--surface2)}
   .owner-tags{grid-column:2;justify-content:flex-start}
 }
 
-/* ===== 案件コックピット（リニューアルP1: 左=商談ステップ／中央=作業／右=顧客攻略） ===== */
+/* ===== 案件コックピット（中央=作業エリアを最大幅に／右=顧客攻略。商談ステップは🪜進め方タブへ分離） ===== */
 h1,h2{font-family:var(--serif);letter-spacing:.02em}
-.cockpit{display:grid;grid-template-columns:216px minmax(0,1fr) 264px;gap:18px;align-items:start}
-.cockpit-left,.cockpit-right{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow-y:auto;padding-bottom:20px}
-.cockpit-main{min-width:0}
+.cockpit{display:flex;gap:18px;align-items:flex-start}
+.cockpit-main{flex:1;min-width:0}
+.cockpit-right{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow-y:auto;padding-bottom:20px;flex:0 0 auto}
 @media (max-width:1279px){
   .cockpit{display:block}
-  .cockpit-left,.cockpit-right{position:static;max-height:none;margin-bottom:14px}
+  .cockpit-right{position:static;max-height:none;margin-bottom:14px}
 }
+/* 🪜 進め方タブ：ステップを横並びカードで一覧できるように（案件ページ内の最大幅を活用） */
+.steps-tab-wrap .step-nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.steps-tab-wrap .step-nav-title{grid-column:1/-1}
+.steps-tab-wrap .step{border-left:none;margin-left:0;padding:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.steps-tab-wrap .step.done{border-color:var(--accent)}
+.steps-tab-wrap .step-dot{position:static;margin-right:2px}
+.steps-tab-wrap .step-head{padding:12px 14px}
+.steps-tab-wrap .step-body{padding:0 14px 14px}
 .step-nav-title{font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.12em;padding:2px 4px 8px;font-family:var(--serif)}
 .step-nav .step{border-left:2px solid var(--border);margin-left:11px;padding:0 0 4px 14px;position:relative}
 .step-nav .step.done{border-left-color:var(--accent)}
@@ -614,7 +635,9 @@ h1,h2{font-family:var(--serif);letter-spacing:.02em}
 .step-close{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:6px;
   color:var(--text3);font-size:12px;line-height:1;display:grid;place-items:center}
 .step-close:hover{background:var(--surface2);color:var(--text)}
-.strategy-panel-collapsed{display:flex;justify-content:flex-end}
+.strategy-panel{width:264px}
+.strategy-panel-collapsed{display:flex;justify-content:flex-end;width:auto}
+@media (max-width:1279px){ .strategy-panel{width:auto} }
 .strategy-reopen{writing-mode:vertical-rl;text-orientation:mixed;background:var(--surface);
   border:1px solid var(--border);border-radius:10px;padding:12px 6px;font-size:11px;
   color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:6px;letter-spacing:.05em}

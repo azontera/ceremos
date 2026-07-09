@@ -7,13 +7,14 @@ export function LogoutButton() {
     <button
       className="nav-item"
       style={{ marginTop: 6 }}
+      title="ログアウト"
       onClick={async () => {
         await fetch("/api/v1/auth/logout", { method: "POST" });
         router.push("/login");
         router.refresh();
       }}
     >
-      ↩ ログアウト
+      <span aria-hidden>↩</span><span className="nav-label">ログアウト</span>
     </button>
   );
 }

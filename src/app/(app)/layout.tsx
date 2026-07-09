@@ -12,6 +12,7 @@ import { getBranding } from "@/lib/settings";
 import { APP_VERSION, BUILD_AT } from "@/lib/version";
 import { DEMO_MODE, getNow, graceRemainingMs } from "@/lib/clock";
 import { DemoBar } from "@/components/demo-bar";
+import { SidebarShell } from "@/components/sidebar-shell";
 
 const NAV = [
   { href: "/dashboard", label: "ダッシュボード", icon: "▦" },
@@ -57,69 +58,93 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     // お客様はエレガントテーマ（ログイン画面と同じ世界観）で統一
     <div className={isCouple ? "app couple-app" : "app"}>
-      <nav className="sidebar">
+      <SidebarShell>
         <div className="logo" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
           {branding.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={branding.logoUrl} alt={branding.name || "式場ロゴ"}
+              className="logo-img"
               style={{ maxWidth: 190, maxHeight: 52, objectFit: "contain" }} />
           ) : (
-            <div style={{ letterSpacing: ".14em", color: "var(--accent-text)", fontWeight: 700 }}>
+            <div className="nav-label" style={{ letterSpacing: ".14em", color: "var(--accent-text)", fontWeight: 700 }}>
               {branding.name || "CEREMOS"}
             </div>
           )}
         </div>
         <div className="navlabel">メイン</div>
         {NAV.map((n) => (
-          <Link key={n.href} href={n.href} className="nav-item">
-            <span aria-hidden>{n.icon}</span>{n.label}
+          <Link key={n.href} href={n.href} className="nav-item" title={n.label}>
+            <span aria-hidden>{n.icon}</span><span className="nav-label">{n.label}</span>
           </Link>
         ))}
         {s.vendorId && (
-          <Link href={`/vendors/${s.vendorId}`} className="nav-item">🏪 自社ページ</Link>
+          <Link href={`/vendors/${s.vendorId}`} className="nav-item" title="自社ページ">
+            <span aria-hidden>🏪</span><span className="nav-label">自社ページ</span>
+          </Link>
         )}
         {["admin", "manager", "planner"].includes(s.role) && (
-          <Link href="/approvals" className="nav-item">
-            ✅ 承認待ち
-            {pendingCount > 0 && (
-              <span className="pill amber" style={{ marginLeft: 6 }}>{pendingCount}</span>
-            )}
+          <Link href="/approvals" className="nav-item" title="承認待ち">
+            <span aria-hidden>✅</span><span className="nav-label">承認待ち
+              {pendingCount > 0 && (
+                <span className="pill amber" style={{ marginLeft: 6 }}>{pendingCount}</span>
+              )}
+            </span>
           </Link>
         )}
         {s.role === "couple" && (
-          <Link href="/survey" className="nav-item">📝 ヒヤリング</Link>
+          <Link href="/survey" className="nav-item" title="ヒヤリング">
+            <span aria-hidden>📝</span><span className="nav-label">ヒヤリング</span>
+          </Link>
         )}
         {["admin", "manager", "planner"].includes(s.role) && (
           <>
-            <Link href="/reports" className="nav-item">📊 成果</Link>
+            <Link href="/reports" className="nav-item" title="成果">
+              <span aria-hidden>📊</span><span className="nav-label">成果</span>
+            </Link>
             <div className="navlabel">マスタ・管理</div>
-            <Link href="/customers" className="nav-item">💐 顧客マスタ</Link>
-            <Link href="/admin/catalog" className="nav-item">🛍 カタログ管理</Link>
-            <Link href="/admin/templates" className="nav-item">📄 テンプレート</Link>
+            <Link href="/customers" className="nav-item" title="顧客マスタ">
+              <span aria-hidden>💐</span><span className="nav-label">顧客マスタ</span>
+            </Link>
+            <Link href="/admin/catalog" className="nav-item" title="カタログ管理">
+              <span aria-hidden>🛍</span><span className="nav-label">カタログ管理</span>
+            </Link>
+            <Link href="/admin/templates" className="nav-item" title="テンプレート">
+              <span aria-hidden>📄</span><span className="nav-label">テンプレート</span>
+            </Link>
             {s.role === "admin" && (
               <>
-                <Link href="/admin/users" className="nav-item">👤 ユーザー・権限</Link>
-                <Link href="/admin/masters" className="nav-item">🗂 選択肢マスタ</Link>
-                <Link href="/admin/settings" className="nav-item">⚙️ 設定</Link>
-                <Link href="/admin/audit" className="nav-item">🕐 操作履歴</Link>
+                <Link href="/admin/users" className="nav-item" title="ユーザー・権限">
+                  <span aria-hidden>👤</span><span className="nav-label">ユーザー・権限</span>
+                </Link>
+                <Link href="/admin/masters" className="nav-item" title="選択肢マスタ">
+                  <span aria-hidden>🗂</span><span className="nav-label">選択肢マスタ</span>
+                </Link>
+                <Link href="/admin/settings" className="nav-item" title="設定">
+                  <span aria-hidden>⚙️</span><span className="nav-label">設定</span>
+                </Link>
+                <Link href="/admin/audit" className="nav-item" title="操作履歴">
+                  <span aria-hidden>🕐</span><span className="nav-label">操作履歴</span>
+                </Link>
               </>
             )}
           </>
         )}
         <div className="spacer" />
-        <span style={{ fontSize: 10, color: "var(--text3)", padding: "2px 14px", letterSpacing: ".06em" }}>
+        <span className="nav-label" style={{ fontSize: 10, color: "var(--text3)", padding: "2px 14px", letterSpacing: ".06em" }}>
           CEREMOS {APP_VERSION}｜更新 {BUILD_AT}
         </span>
-        <Link href="/me/password" className="nav-item" style={{ fontSize: 12 }}>🔑 パスワード変更</Link>
+        <Link href="/me/password" className="nav-item" style={{ fontSize: 12 }} title="パスワード変更">
+          <span aria-hidden>🔑</span><span className="nav-label">パスワード変更</span>
+        </Link>
         <div className="userchip">
           <div className="avatar">{s.name.charAt(0)}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="nav-label" style={{ flex: 1, minWidth: 0 }}>
             <b>{s.name}</b>
             <span>{ROLES[s.role] ?? s.role}</span>
           </div>
         </div>
         <LogoutButton />
-      </nav>
+      </SidebarShell>
       <div className="main">
         {/* 🧪 検証モード：時間送り＋ワンクリックアカウント切替（本番=DEMO_MODEなしでは出ない） */}
         {DEMO_MODE && <DemoBar />}
