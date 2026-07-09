@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-07-09（UI全面リニューアル P0〜P5 実装）
+仕様書 = `docs/リニューアル仕様書_v1.md`（確定版）。コミット acedd8a〜aad3dae の6段階。
+
+- **P0 用語辞書**: `src/lib/terms.ts` — `t(key, caseType)` で婚礼/宴会の用語を自動切替（新郎新婦→主催者等）。Caseに hearingJson / lostReason / lostNote / lostStep / lostAt を追加（db push済み）
+- **P1 案件コックピット**: 案件詳細をスタッフ向け3ペイン化（左=`sales-step-nav.tsx` 商談ステップナビ〔8ステップ・トーク/チェック/完了自動判定=`src/lib/sales-steps.ts`〕／右=`strategy-panel.tsx` 顧客攻略）。デザイントークンを白基調＋ゴールドに変更・見出しをセリフ体に（globals.css）
+- **P2 AIヒヤリング**: `/cases/[id]/hearing` — 1問1画面ウィザード（婚礼26問・宴会13問・章末ミニ診断）。診断=`src/lib/hearing.ts`（MBTI16/星座・五行/新郎×新婦相性/主催者タイプ・全てルールベースでAI不要）。結果は hearingJson に保存され攻略パネル（タイプ・刺さる提案・NG・アップセル候補）に反映。`GET /api/v1/cases/[id]/hearing/md` がpack生成依頼MDを出力（外部AI→テンプレ読込の既存フローに接続・将来API組込用にルート内へ隔離）
+- **P3 お客様スマホPWA**: coupleホームをタスクフィード型に（準備完了度ゲージ＋今やること）。下部ナビをホーム/準備/えらぶ/診断/メニューの5タブ化。席次は新郎側/新婦側の担当分担（`src/lib/couple-side.ts` で担当解決・seating APIでサーバー強制・相手側は閲覧のみ）。`src/lib/notify.ts` = Notifier抽象化＋LINE Messaging API骨格（LINE_CHANNEL_TOKEN 未設定ならno-op・宿題登録時に発火）
+- **P4 テンプレ15本＋宴会モード**: `node scripts/seed-template-packs.cjs` で婚礼10・宴会5のpack登録（見積・コース料理・進行台本mcScript・リソース・wizard条件込み・冪等）。宴会モードは9コンポーネントで用語切替・dressカタログ非表示・婚礼専用進行プリセット除外。宴会packに婚礼用語ゼロを機械チェック済み
+- **P5 失注＋成果**: `POST/DELETE /api/v1/cases/[id]/lost`（理由必須・失注ステップ自動記録）＋案件ページ右上に失注ボタン。`/reports` 成果ダッシュボード（成約/失注/成約率/平均単価/プランナー別/失注理由・ステップ集計）
+- **検証**: 各Phaseで `npx tsc --noEmit` 全通過＋ブラウザ実挙動確認（ヒヤリング回答→診断→攻略パネル、テンプレ適用→進行表15演目・実名置換・曲枠8、席次の側強制403、失注記録→集計反映→取消、宴会案件で婚礼用語ゼロ）。最終 `npm run build` 成功（48ページ）
+- **本番未反映**。デプロイ時はサーバーで `prisma db push`（server-update.shが実行）後、`node scripts/rebuild-catalog-with-photos.cjs` と `node scripts/seed-template-packs.cjs` を1回ずつ実行
+
 ## 2026-07-09（カタログ再構築・UIリニューアル仕様書v1）
 - **カタログ消失の調査と再構築**：ローカルDBの CatalogItem が0件だったのが原因（ページ・API・導線は無傷。0件だとカタログ画面から品目が全部消える設計）。本番は backups/ 不存在＝削除ボタンの形跡なし・sqlite3未導入のため件数未確認（確認するなら node + Prisma で）。
   - **`scripts/rebuild-catalog-with-photos.cjs` を新設**：全69品目＋業者10社を、実写真（`catalog-photo-assets-all/` の PNG・manifest.tsv 対応表どおり）つきで一括投入。既存があればスキップ・写真が無ければ写真だけ付ける冪等設計。品目定義は seed-catalog / fill-empty-catalog / restore-dress-catalog / seed-transport / seed-family-attire に準拠して1本に統合。
