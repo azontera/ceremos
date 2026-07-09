@@ -1,8 +1,9 @@
-/* Wedding ERP — デザイントークン（承認済みプロトタイプより移植） */
+/* Wedding ERP — デザイントークン（リニューアル仕様書6.5: 白基調フォーマル＋ゴールド基調） */
 :root{
-  --bg:#f6f5f3; --surface:#ffffff; --surface2:#faf9f7; --border:#e8e5e0;
-  --text:#1c1a18; --text2:#6b6560; --text3:#a09a93;
-  --accent:#a4586b; --accent-soft:#f7ecef; --accent-text:#8d4457;
+  --bg:#f8f7f4; --surface:#ffffff; --surface2:#faf9f6; --border:#e9e5dd;
+  --text:#211e1a; --text2:#6b6560; --text3:#a09a93;
+  --accent:#96793d; --accent-soft:#f4efe3; --accent-text:#7c6330;
+  --serif:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
   --green:#3d8a5f; --green-soft:#e8f4ed; --amber:#b07a2a; --amber-soft:#faf1e0;
   --red:#c14b4b; --red-soft:#fbeaea; --blue:#4a6fa5; --blue-soft:#eaf0f8;
   --shadow:0 1px 3px rgba(20,15,10,.05),0 4px 16px rgba(20,15,10,.05);
@@ -12,7 +13,7 @@
 [data-theme="dark"]{
   --bg:#141312; --surface:#1e1c1a; --surface2:#262321; --border:#33302c;
   --text:#f0ede9; --text2:#a8a29b; --text3:#6e6862;
-  --accent:#c97b8f; --accent-soft:#332228; --accent-text:#d99aab;
+  --accent:#c2a45e; --accent-soft:#2f2a1e; --accent-text:#d6bd7f;
   --green:#5cb885; --green-soft:#1d2f25; --amber:#d8a04e; --amber-soft:#332a1a;
   --red:#e07070; --red-soft:#33201f; --blue:#7d9cc9; --blue-soft:#1e2733;
   --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
@@ -552,3 +553,34 @@ a.list-row:hover{background:var(--surface2)}
   .run-row{grid-template-columns:56px 1fr}
   .owner-tags{grid-column:2;justify-content:flex-start}
 }
+
+/* ===== 案件コックピット（リニューアルP1: 左=商談ステップ／中央=作業／右=顧客攻略） ===== */
+h1,h2{font-family:var(--serif);letter-spacing:.02em}
+.cockpit{display:grid;grid-template-columns:216px minmax(0,1fr) 264px;gap:18px;align-items:start}
+.cockpit-left,.cockpit-right{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow-y:auto;padding-bottom:20px}
+.cockpit-main{min-width:0}
+@media (max-width:1279px){
+  .cockpit{display:block}
+  .cockpit-left,.cockpit-right{position:static;max-height:none;margin-bottom:14px}
+}
+.step-nav-title{font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.12em;padding:2px 4px 8px;font-family:var(--serif)}
+.step-nav .step{border-left:2px solid var(--border);margin-left:11px;padding:0 0 4px 14px;position:relative}
+.step-nav .step.done{border-left-color:var(--accent)}
+.step-nav .step:last-child{padding-bottom:0}
+.step-head{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 6px;border-radius:8px;font-size:12.5px;color:var(--text2)}
+.step-head:hover{background:var(--surface2)}
+.step-dot{position:absolute;left:-12px;width:22px;height:22px;border-radius:50%;background:var(--surface);border:2px solid var(--border);
+  display:grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--text3)}
+.step.done .step-dot{background:var(--accent);border-color:var(--accent);color:#fff}
+.step.current .step-dot{border-color:var(--accent);color:var(--accent-text);box-shadow:0 0 0 4px var(--accent-soft)}
+.step.current .step-head{font-weight:700;color:var(--text)}
+.step-body{padding:4px 6px 10px;font-size:11.5px}
+.step-goal{font-weight:600;color:var(--text);margin-bottom:2px}
+.step-hint{color:var(--accent-text);font-size:11px;margin-bottom:6px}
+.step-sec{margin-bottom:6px}
+.step-sec b{font-size:10.5px;color:var(--text3);letter-spacing:.05em}
+.step-sec ul{margin:2px 0 0;padding-left:16px;color:var(--text2)}
+.step-sec li{margin-bottom:3px;line-height:1.5}
+.strategy-list{margin:0;padding-left:16px;font-size:12px;color:var(--text2)}
+.strategy-list li{margin-bottom:4px;line-height:1.55}
+.strategy-list.ng li{color:var(--red)}

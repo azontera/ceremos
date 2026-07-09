@@ -29,6 +29,10 @@ import { CustomerAccountPanel } from "@/components/customer-account-panel";
 import { CaseInfoCard } from "@/components/case-info-card";
 import { DayVenueChart } from "@/components/day-venue-chart";
 import { SectionModal, OpenSectionButton } from "@/components/section-modal";
+import { SalesStepNav } from "@/components/sales-step-nav";
+import { StrategyPanel, type StrategyData } from "@/components/strategy-panel";
+import { computeSalesSteps } from "@/lib/sales-steps";
+import { isBridal } from "@/lib/terms";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -133,6 +137,7 @@ export default async function CaseDetailPage({
     }),
     isStaff ? prisma.menuItem.findMany({ where: { caseId: c.id }, orderBy: { sortOrder: "asc" } }) : Promise.resolve([]),
   ]);
+  const followUpsCount = isStaff ? await prisma.followUp.count({ where: { caseId: c.id } }) : 0;
   const customerSurveys = customerMembers.map((m) => {
     let p: { furigana?: string; survey?: Record<string, string>; birthDate?: string; gender?: string; hasChildren?: string } = {};
     try { p = JSON.parse(m.user.profileJson ?? "{}"); } catch { /* ignore */ }
@@ -158,6 +163,26 @@ export default async function CaseDetailPage({
     "楽曲決定": "songs", "席次確定": "seating", "進行表作成": "rundown",
   };
 
+  // 商談ステップナビ＋顧客攻略パネル（コックピット両翼・スタッフのみ）
+  let strategy: StrategyData | null = null;
+  if (c.hearingJson) {
+    try { strategy = (JSON.parse(c.hearingJson).results as StrategyData) ?? null; } catch { /* ignore */ }
+  }
+  const salesSteps = isStaff
+    ? computeSalesSteps({
+        caseType: c.caseType, status: c.status,
+        hearingDone: !!c.hearingJson,
+        surveyAnswered: customerSurveys.length > 0,
+        meetingsCount: c.meetings.length,
+        quotesCount: c.quotes.length,
+        quoteApproved: c.quotes.some((q) => q.status === "approved"),
+        progressPercent: progress.percent,
+        daysUntil: ddays,
+        invoicePaid: invoices.some((i) => i.status === "paid"),
+        followUpsCount,
+      })
+    : null;
+
   return (
     <>
       <div className="section-h" style={{ marginBottom: 4 }}>
@@ -172,6 +197,15 @@ export default async function CaseDetailPage({
         <span className={`dday ${dd.cls}`}>{dd.text}</span>
         <span className="pill gray">{c.guestCount}名</span>
       </div>
+
+      {/* 案件コックピット：左=商談ステップナビ／中央=作業エリア／右=顧客攻略パネル（スタッフのみ3ペイン） */}
+      <div className={isStaff ? "cockpit" : ""}>
+      {isStaff && salesSteps && (
+        <div className="cockpit-left">
+          <SalesStepNav steps={salesSteps.steps} currentKey={salesSteps.currentKey} />
+        </div>
+      )}
+      <div className={isStaff ? "cockpit-main" : ""}>
 
       {/* 案件カード内ジャンプリンク（タブではなく同一ページ内のアンカー。お客様のスマホは下部ナビ導線があるため非表示） */}
       <div className={s.role === "couple" ? "tabs pc-only" : "tabs"}>
@@ -503,6 +537,14 @@ export default async function CaseDetailPage({
           </>
         );
       })()}
+
+      </div>{/* /cockpit-main */}
+      {isStaff && (
+        <div className="cockpit-right">
+          <StrategyPanel caseId={c.id} isBridalCase={isBridal(c.caseType)} strategy={strategy} />
+        </div>
+      )}
+      </div>{/* /cockpit */}
 
       {/* チャットドック：右下に常設 */}
       <ChatDock caseId={c.id} meId={s.userId} initialOpen={chatOpen} />
