@@ -1,0 +1,531 @@
+// Wedding ERP — データベーススキーマ（設計ドキュメント第8章準拠）
+// SQLite は enum 非対応のため String で表現し、値はコメントに記載する。
+// PostgreSQL 移行時は provider を変更し、String → enum 化する。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// role: admin / manager / planner / chef / audio / mc / dress / florist /
+//       photo / print / gift / service / couple
+model User {
+  id            String   @id @default(cuid())
+  tenantId      String   @default("default")
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          String
+  vendorId      String?
+  vendor        Vendor?  @relation(fields: [vendorId], references: [id])
+  isActive      Boolean  @default(true)
+  address       String?  // セルフ登録時の住所
+  phone         String?  // セルフ登録時の電話
+  approved      Boolean  @default(true)  // セルフ登録は false → 管理者承認で true
+  emailVerified Boolean  @default(true)  // セルフ登録は false → メール認証で true
+  verifyToken   String?  @unique         // メール認証トークン
+  profileJson   String?  // セルフ登録時のプロフィール（年齢・性別・生年月日・子供の有無・希望種別）＋アンケート30問の回答
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  plannedCases Case[]         @relation("planner")
+  memberships  CaseMember[]
+  meetings     Meeting[]
+  messages     ChatMessage[]
+  reads        ChatRead[]
+  reactions    ChatReaction[]
+  tasks        Task[]
+  auditLogs    AuditLog[]
+  assignments  Assignment[]
+  followUps    FollowUp[]
+}
+
+// category: dress / florist / catering / audio / mc / photo / video / gift / print / beauty
+model Vendor {
+  id           String        @id @default(cuid())
+  tenantId     String        @default("default")
+  name         String
+  category     String
+  users        User[]
+  orders       Order[]
+  quoteItems   QuoteItem[]
+  catalogItems CatalogItem[]
+}
+
+// 業者カタログ（お客様・プランナーが「カタログ」タブから見積へ追加できる商品）
+// vendorId=null は式場自身の品目（会場費・自社料理など）
+// category は見積部門と同じ値（venue / catering / dress / gift / other など）
+// 出店は1カテゴリ最大3店舗（品目作成時にサーバー側で検証）
+model CatalogItem {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("default")
+  vendorId  String?
+  vendor    Vendor?  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category  String   @default("other")
+  name      String
+  desc      String?
+  price     Int      @default(0) // 定価（お客様はこの価格でのみ見積に追加できる。値引きはプランナーが見積編集で行う）
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, isActive])
+  @@index([vendorId])
+}
+
+// type: chapel / banquet / waiting / kitchen
+model Venue {
+  id       String @id @default(cuid())
+  tenantId String @default("default")
+  name     String
+  type     String
+  capacity Int    @default(0)
+  widthM   Float? // 会場の間口（m）。登録すると席次表のキャンバスが実寸比になる
+  depthM   Float? // 会場の奥行（m）
+
+  chapelCases  Case[]          @relation("chapel")
+  banquetCases Case[]          @relation("banquet")
+  events       CalendarEvent[]
+  assignments  Assignment[]
+}
+
+// status: contracted / planning / quoting / final_prep / done
+// slot: 旧「第1部〜第3部」。互換のため残置（UIからは廃止済み・時間帯ベースへ移行）
+model Case {
+  id             String    @id @default(cuid())
+  tenantId       String    @default("default")
+  groomName      String
+  brideName      String
+  address        String?
+  phone          String?
+  email          String?
+  weddingDate    DateTime
+  endTime        DateTime? // 終了時刻（未設定は開始+4時間とみなす）
+  slot           Int       @default(1)
+  chapelVenueId  String?
+  chapelVenue    Venue?    @relation("chapel", fields: [chapelVenueId], references: [id])
+  banquetVenueId String?
+  banquetVenue   Venue?    @relation("banquet", fields: [banquetVenueId], references: [id])
+  guestCount     Int       @default(0)
+  hallWidth      Int       @default(1240) // 宴会場レイアウトの広さ（px）
+  hallHeight     Int       @default(720)
+  caseType       String    @default("wedding") // wedding（ブライダル）/ party（宴会）/ ceremony（式典）/ event（イベント）
+  venueFree      String?   // 会場の自由記入（マスタ外の会場・外部会場など）
+  status         String    @default("contracted")
+  plannerId      String?
+  planner        User?     @relation("planner", fields: [plannerId], references: [id])
+  contractJson   String?
+  musicPrefsJson String?   // 楽曲の好み診断（10問＋好きなアーティスト）の回答（おすすめ選曲の精度向上に使用）
+  prepJson       String?   // 準備チェックリスト（招待状発送済み等の手動チェック。お客様とプランナーで共有）
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  members      CaseMember[]
+  meetings     Meeting[]
+  messages     ChatMessage[]
+  quotes       Quote[]
+  orders       Order[]
+  invoices     Invoice[]
+  paymentPlans PaymentPlan[]
+  followUps    FollowUp[]
+  mealReqs      MealRequirement[]
+  menuItems     MenuItem[]
+  songs         Song[]
+  rundownItems  RundownItem[]
+  tasks         Task[]
+  events        CalendarEvent[]
+  assignments   Assignment[]
+  seatingTables SeatingTable[]
+  guests        Guest[]
+  floorObjects  FloorObject[]
+
+  @@index([weddingDate])
+  @@index([plannerId])
+}
+
+model CaseMember {
+  caseId     String
+  userId     String
+  roleInCase String @default("member")
+  case       Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([caseId, userId])
+}
+
+model Meeting {
+  id        String    @id @default(cuid())
+  caseId    String
+  case      Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  heldAt    DateTime
+  staffId   String?
+  staff     User?     @relation(fields: [staffId], references: [id])
+  minutes   String?
+  decisions String?
+  homework  String?
+  internalNote String? // プランナー専用メモ（お客様アプリには同期・表示されない）
+  nextAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([caseId])
+}
+
+model ChatMessage {
+  id             String     @id @default(cuid())
+  caseId         String
+  case           Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User       @relation(fields: [senderId], references: [id])
+  body           String
+  threadParentId String?
+  createdAt      DateTime       @default(now())
+  reads          ChatRead[]
+  reactions      ChatReaction[]
+
+  @@index([caseId, createdAt])
+}
+
+model ChatReaction {
+  messageId String
+  userId    String
+  emoji     String
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId, emoji])
+}
+
+// バンケットリソース割当
+// kind: waiting(控室) / kitchen(厨房) / staff(スタッフ) / equipment(備品)
+model Assignment {
+  id       String   @id @default(cuid())
+  caseId   String
+  case     Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  kind     String
+  venueId  String?
+  venue    Venue?   @relation(fields: [venueId], references: [id])
+  userId   String?
+  user     User?    @relation(fields: [userId], references: [id])
+  label    String
+  startsAt DateTime
+  endsAt   DateTime
+
+  @@index([caseId])
+  @@index([venueId, startsAt])
+  @@index([userId, startsAt])
+}
+
+model ChatRead {
+  messageId String
+  userId    String
+  readAt    DateTime    @default(now())
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+}
+
+// status: draft / confirmed / approved / archived
+model Quote {
+  id        String      @id @default(cuid())
+  caseId    String
+  case      Case        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  version   Int
+  status    String      @default("draft")
+  total     Int         @default(0)
+  note      String?
+  createdBy String?
+  createdAt DateTime    @default(now())
+  items     QuoteItem[]
+
+  @@unique([caseId, version])
+}
+
+model QuoteItem {
+  id        String  @id @default(cuid())
+  quoteId   String
+  quote     Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  name      String
+  category  String  @default("other")
+  qty       Int     @default(1)
+  unitPrice Int     @default(0)
+  vendorId  String? // 発注先（承認時に発注書を自動作成）
+  vendor    Vendor? @relation(fields: [vendorId], references: [id])
+}
+
+// category: dress / florist / catering / audio / mc / photo / video / gift / print / beauty
+// status: pending / confirmed / delivered
+model Order {
+  id       String    @id @default(cuid())
+  caseId   String
+  case     Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  vendorId String?
+  vendor   Vendor?   @relation(fields: [vendorId], references: [id])
+  category String
+  amount   Int       @default(0)
+  dueAt    DateTime?
+  status   String    @default("pending")
+  note     String?
+
+  @@index([caseId])
+  @@index([vendorId])
+}
+
+// type: allergy / religion / kids / dislike
+model MealRequirement {
+  id         String @id @default(cuid())
+  caseId     String
+  case       Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  guestLabel String
+  type       String
+  detail     String
+}
+
+// 楽曲は進行表の行に紐付く（進行表がマスター）。scene は旧データ互換＋表示用
+// scene: entrance / toast / cake / leave / reentry / bouquet / farewell / rundown（進行表から作成）
+model Song {
+  id          String  @id @default(cuid())
+  caseId      String
+  case        Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  scene       String
+  title       String
+  artist      String?
+  durationSec Int?
+  startSec    Int?    // 流し始める位置（秒）。本番再生時にこの位置から開始
+  volume      Int     @default(70) // シーンごとの再生音量（0-100）
+  fadeInSec   Int     @default(0)  // フェードイン秒（0=なし）
+  fadeOutSec  Int     @default(2)  // フェードアウト秒（0=即停止）
+  videoOn     Boolean @default(false) // 映像ON：本番でこの曲だけ映像ウィンドウに投影
+  cueTiming   String? // 流すタイミング（例：板付き／曲先／キャプテン指示で／時間どおり）
+  memo        String?
+  url         String? // YouTube等の視聴URL（本番音源は Attachment parentType="song" で管理）
+
+  rundownItems RundownItem[]
+}
+
+// status: todo / now / done / hold
+model RundownItem {
+  id          String    @id @default(cuid())
+  caseId      String
+  case        Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  time        String
+  title       String
+  note        String?
+  mcScript    String?   // 司会のしゃべる内容（台本）
+  durationMin Int?      // 所要分（時間の自動計算に使用）
+  roles       String    @default("") // カンマ区切り: mc,audio,catering,service,photo
+  songId      String?   // 使用楽曲（進行表がマスター：ここから楽曲を作成・更新する）
+  song        Song?     @relation(fields: [songId], references: [id], onDelete: SetNull)
+  status      String    @default("todo")
+  delayMin    Int       @default(0)
+  actualAt    DateTime?
+  sortOrder   Int       @default(0)
+
+  @@index([caseId, sortOrder])
+}
+
+// type: meeting / fitting / delivery / arrival / wedding / staff
+model CalendarEvent {
+  id       String   @id @default(cuid())
+  caseId   String?
+  case     Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  venueId  String?
+  venue    Venue?   @relation(fields: [venueId], references: [id])
+  type     String
+  title    String
+  startsAt DateTime
+  endsAt   DateTime
+
+  @@index([startsAt])
+}
+
+// 席次表：卓
+model SeatingTable {
+  id        String  @id @default(cuid())
+  caseId    String
+  case      Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  name      String
+  capacity  Int     @default(8)
+  sizeCm    Int     @default(200) // 円卓の直径（cm）。1m=80pxの実寸比で描画（120〜300cm）
+  sortOrder Int     @default(0)
+  posX      Int     @default(-1) // フロアプラン上の座標（-1=自動配置）
+  posY      Int     @default(-1)
+  guests    Guest[]
+
+  @@index([caseId, sortOrder])
+}
+
+// 料理コースメニュー（前菜〜デザート）：原価・売値を管理し、お品書きを印刷
+// course: 乾杯酒 / アミューズ / 前菜 / スープ / 魚料理 / お口直し / 肉料理 / デザート / パン・飲物 / その他
+model MenuItem {
+  id        String @id @default(cuid())
+  caseId    String
+  case      Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  course    String @default("前菜")
+  name      String
+  desc      String? // 説明（例：真鯛のポワレ 季節野菜を添えて）
+  cost      Int    @default(0) // 原価
+  price     Int    @default(0) // 売値
+  sortOrder Int    @default(0)
+
+  @@index([caseId, sortOrder])
+}
+
+// 宴会場レイアウトのオブジェクト（高砂・ステージ・司会台・長机・椅子・自由設置物）
+// kind: takasago / stage / mc / longtable / chair / custom
+// 椅子（chair）は1脚につき1名のゲストを割当可能（席次）
+model FloorObject {
+  id     String @id @default(cuid())
+  caseId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  kind     String @default("custom")
+  label    String
+  posX     Int    @default(40)
+  posY     Int    @default(40)
+  width    Int    @default(200)
+  height   Int    @default(90)
+  capacity Int    @default(0) // 長机の席数（席＋/席−で増減。片側3席×2＝最大6。初期は0）
+  rotation Int    @default(0) // 回転角（0 or 90。長机で使用）
+  guests   Guest[]
+
+  @@index([caseId])
+}
+
+// 席次表：ゲスト
+// side: groom / bride ／ relation: 親族・主賓・上司・同僚・友人・恩師 など自由入力
+model Guest {
+  id        String        @id @default(cuid())
+  caseId    String
+  case      Case          @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  name      String
+  title     String?       // 肩書（例：株式会社◯◯ 代表取締役／新郎会社上司）
+  side      String        @default("groom")
+  relation  String        @default("友人")
+  tableId   String?
+  table     SeatingTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  seatNo    Int?          // 卓内の席番号（＋を押した席にそのまま座る。null=自動配置）
+  seatObjectId String?      // 椅子（FloorObject kind=chair）への割当（卓と排他）
+  seatObject   FloorObject? @relation(fields: [seatObjectId], references: [id], onDelete: SetNull)
+  allergy   String?       // アレルギー・食事配慮（席次表に統合。受付表・配席図に印刷される）
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  @@index([caseId])
+}
+
+// type: meeting / quote / rundown / mc_script / audio_script / meal_sheet / order_sheet
+model Template {
+  id       String  @id @default(cuid())
+  tenantId String  @default("default")
+  type     String
+  name     String
+  bodyJson String  @default("{}")
+  isSystem Boolean @default(true)
+}
+
+// status: open / done
+model Task {
+  id         String    @id @default(cuid())
+  caseId     String?
+  case       Case?     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  title      String
+  dueAt      DateTime?
+  assigneeId String?
+  assignee   User?     @relation(fields: [assigneeId], references: [id])
+  status     String    @default("open")
+  createdAt  DateTime  @default(now())
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  parentType String
+  parentId   String
+  fileKey    String
+  fileName   String
+  mime       String?
+  size       Int?
+  createdAt  DateTime @default(now())
+}
+
+// アフター記録（式後の連絡・引き継ぎ・クレーム）
+// type: contact(アフター連絡) / handover(引き継ぎ) / claim(クレーム) / other
+// status: open(対応中) / done(完了)
+model FollowUp {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type      String   @default("contact")
+  body      String
+  status    String   @default("open")
+  staffId   String?
+  staff     User?    @relation(fields: [staffId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([caseId, createdAt])
+}
+
+// 支払予定（内金／半金／全額など複数行）
+model PaymentPlan {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  label     String   // 内金・半金・全額・残金 など
+  amount    Int      @default(0)
+  dueAt     DateTime?
+  sortOrder Int      @default(0)
+
+  @@index([caseId, sortOrder])
+}
+
+// 請求書 status: draft / sent / paid
+model Invoice {
+  id       String    @id @default(cuid())
+  caseId   String
+  case     Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  number   String    @unique // 請求番号（例：INV-2026-0001）
+  issuedAt DateTime  @default(now())
+  dueAt    DateTime?
+  amount   Int       @default(0)
+  status   String    @default("draft")
+  paidAt   DateTime? // 入金日
+  note     String?
+  itemsJson String?  // 見積から転記した明細のスナップショット（[{name,category,qty,unitPrice}]）
+  freeeDealId String? // freee会計へ同期済みの取引ID（二重登録防止）
+
+  @@index([caseId])
+}
+
+// 選択肢マスタ group: case_type（案件種別）/ relation（間柄）/ quote_category（部門）
+model MasterOption {
+  id        String  @id @default(cuid())
+  tenantId  String  @default("default")
+  group     String
+  value     String  // 内部値（英数字）
+  label     String  // 表示名
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  @@unique([group, value])
+}
+
+// アプリ設定（key-value）例: email_verification=on/off, bank_info=振込先
+model Setting {
+  key   String @id
+  value String
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  targetType String
+  targetId   String?
+  diffJson   String?
+  createdAt  DateTime @default(now())
+}

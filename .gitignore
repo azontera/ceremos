@@ -1,0 +1,14 @@
+node_modules/
+.next/
+prisma/dev.db
+prisma/dev.db-journal
+.env
+storage/
+backups/
+.DS_Store
+*.tsbuildinfo
+.write-test
+.claude/settings.local.json
+# 写真素材の原本（159MB・storageへ反映済み。tarバックアップで別管理）
+catalog-attire-photo-assets/
+catalog-photo-assets-all/

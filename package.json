@@ -1,0 +1,31 @@
+{
+  "name": "ceremos",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:setup": "prisma db push --force-reset && node prisma/seed.cjs",
+    "test:smoke": "node scripts/smoke-test.cjs",
+    "backup": "bash scripts/backup.sh",
+    "import:cases": "node scripts/import-cases.cjs"
+  },
+  "prisma": { "seed": "node prisma/seed.cjs" },
+  "dependencies": {
+    "@prisma/client": "^5.19.0",
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.6.3",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "prisma": "^5.19.0",
+    "typescript": "^5"
+  }
+}

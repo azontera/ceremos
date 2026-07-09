@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- CEREMOS ロゴマーク（ローズゴールド版） -->
+  <defs>
+    <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d99a86"/>
+      <stop offset="0.5" stop-color="#c07f6f"/>
+      <stop offset="1" stop-color="#b06a5e"/>
+    </linearGradient>
+  </defs>
+  <path d="M 74.0 74.5 A 33 33 0 1 1 74.0 29.5" fill="none" stroke="url(#rg)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 37 67 L 37 45 L 51 59 L 65 45 L 65 67" fill="none" stroke="url(#rg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 81 8 C 82.6 16.2 84.8 18.4 93 20 C 84.8 21.6 82.6 23.8 81 32 C 79.4 23.8 77.2 21.6 69 20 C 77.2 18.4 79.4 16.2 81 8 Z" fill="url(#rg)"/>
+</svg>

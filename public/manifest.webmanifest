@@ -1,0 +1,14 @@
+{
+  "name": "CEREMOS",
+  "short_name": "CEREMOS",
+  "description": "結婚式・ご宴会の準備アプリ",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f6f5f3",
+  "theme_color": "#a4586b",
+  "lang": "ja",
+  "icons": [
+    { "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
