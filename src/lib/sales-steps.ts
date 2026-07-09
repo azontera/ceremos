@@ -90,13 +90,13 @@ const WEDDING_STEPS: SalesStepDef[] = [
     checks: ["席次確定（アレルギー最終確認）", "進行表・MC台本確定", "楽曲・音源確定", "発注すべて確定"],
   },
   {
-    key: "day", label: "当日", emoji: "💒", anchor: "resources",
+    key: "day", label: "当日", emoji: "💒", anchor: "info",
     goal: "当日運営（進行・音響・映像）をライブ画面で回す",
     talkPoints: ["開始前にスタッフ全員で進行表の「役割」列を読み合わせ"],
     checks: ["当日運営画面の起動確認", "音源・映像の再生テスト"],
   },
   {
-    key: "after", label: "アフター", emoji: "💌", anchor: "billing",
+    key: "after", label: "アフター", emoji: "💌", anchor: "quotes",
     goal: "請求・入金と御礼連絡。紹介・記念日利用につなげる",
     talkPoints: [
       "1週間以内に手書きの御礼＋写真データ納品の連絡（紹介の種まき）",
@@ -147,13 +147,13 @@ const BANQUET_STEPS: SalesStepDef[] = [
     checks: ["最終人数の確定", "進行表・司会台本確定", "料理・ドリンク確定"],
   },
   {
-    key: "day", label: "当日", emoji: "🥂", anchor: "resources",
+    key: "day", label: "当日", emoji: "🥂", anchor: "info",
     goal: "当日運営をライブ画面で回す",
     talkPoints: ["主催者側の窓口担当と開始前に最終挨拶"],
     checks: ["当日運営画面の起動確認", "音源・映像の再生テスト"],
   },
   {
-    key: "after", label: "アフター", emoji: "💌", anchor: "billing",
+    key: "after", label: "アフター", emoji: "💌", anchor: "quotes",
     goal: "請求・入金と御礼。次年度・定例利用につなげる",
     talkPoints: ["「来年も同時期に」の仮押さえ提案で定例化する"],
     checks: ["請求書発行・入金確認", "御礼連絡", "次回利用の打診記録"],

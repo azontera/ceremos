@@ -33,7 +33,9 @@ export function SalesStepNav({ steps, currentKey }: { steps: SalesStepState[]; c
                   <b>☑ チェック</b>
                   <ul>{st.checks.map((t, j) => <li key={j}>{t}</li>)}</ul>
                 </div>
-                {st.anchor && <a className="btn sm" href={`#${st.anchor}`}>このステップの作業へ →</a>}
+                {st.anchor && (
+                  <a className="btn sm" href={st.anchor === "hearing" ? "#hearing" : `?tab=${st.anchor}`}>このステップの作業へ →</a>
+                )}
               </div>
             )}
           </div>

@@ -28,7 +28,6 @@ import { BillingPanel } from "@/components/billing-panel";
 import { CustomerAccountPanel } from "@/components/customer-account-panel";
 import { CaseInfoCard } from "@/components/case-info-card";
 import { DayVenueChart } from "@/components/day-venue-chart";
-import { SectionModal, OpenSectionButton } from "@/components/section-modal";
 import { SalesStepNav } from "@/components/sales-step-nav";
 import { LostCaseButton } from "@/components/lost-case-button";
 import { StrategyPanel, type StrategyData } from "@/components/strategy-panel";
@@ -39,24 +38,26 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// 「案件カード」= 1案件=1枚の長いカード。タブ切り替えは廃止し、すべてのセクションを常に表示する
-// （実際の業務の時系列順：打ち合わせ → 見積 → カタログ → 発注 → 料理・楽曲・席次 → 進行表 → 当日リソース → 請求）
-// ただし打ち合わせだけは記録が長くなりがちなためボタン+モーダルで別出し
-const SECTIONS = [
-  { key: "quotes", label: "💰 見積" },
-  { key: "catalog", label: "🛍 カタログ" },
-  { key: "orders", label: "📦 発注" },
-  { key: "meals", label: "🍽 料理" },
-  { key: "seating", label: "🪑 席次表" },
-  { key: "rundown", label: "📋 進行表" },
-  { key: "songs", label: "🎵 楽曲" },
-  { key: "resources", label: "🏛 リソース" },
-  { key: "billing", label: "💴 請求・入金" },
-  // チャットは時間軸に依存しないため、セクションではなく右下の常設ドック（ChatDock）から開く
+// タブ構成（1タブ=1業務。縦に全部並べるLP型は廃止・?tab= で切替）
+// スタッフ: 案件（情報・ToDo・リソース）／打ち合わせ／みつもり（カタログ・発注・料理・請求）／席次／進行（楽曲）
+const STAFF_TABS = [
+  { key: "info", label: "📌 案件" },
+  { key: "meetings", label: "📝 打ち合わせ" },
+  { key: "quotes", label: "💰 みつもり" },
+  { key: "seating", label: "🪑 席次" },
+  { key: "rundown", label: "📋 進行" },
 ];
-// お客様に見せるセクション（チャットはドック、ヒヤリングは /survey）
-// 見積・進行表は閲覧専用（確認とコメント＝チャットで）。発注・料理・リソース・請求はスタッフ専用のまま非表示
-const CUSTOMER_SECTIONS = ["quotes", "catalog", "rundown", "songs", "seating"];
+const COUPLE_TABS = [
+  { key: "quotes", label: "💰 お見積り" },
+  { key: "catalog", label: "👗 えらぶ" },
+  { key: "seating", label: "🪑 席次" },
+  { key: "rundown", label: "📋 当日の流れ" },
+];
+// 旧アンカー・旧タブ名との互換（スマホ下部ナビ・過去リンクを壊さない）
+const TAB_ALIAS: Record<string, string> = {
+  catalog: "quotes", orders: "quotes", meals: "quotes", billing: "quotes",
+  resources: "info", songs: "rundown", after: "info",
+};
 
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: "未確定", cls: "red" },
@@ -90,7 +91,11 @@ export default async function CaseDetailPage({
   // 旧リンク互換：?tab=chat はチャットドックを自動で開く
   const chatOpen = searchParams.tab === "chat";
   const isStaff = s.role !== "couple";
-  const visibleSections = isStaff ? SECTIONS : SECTIONS.filter((sec) => CUSTOMER_SECTIONS.includes(sec.key));
+  // 表示タブの解決（couple はカタログを独立タブに・スタッフはみつもりへ集約）
+  const tabDefs = isStaff ? STAFF_TABS : COUPLE_TABS;
+  const rawTab = searchParams.tab && searchParams.tab !== "chat" ? searchParams.tab : "";
+  const aliased = !isStaff && rawTab === "catalog" ? "catalog" : (TAB_ALIAS[rawTab] ?? rawTab);
+  const tab = tabDefs.some((t) => t.key === aliased) ? aliased : (isStaff ? "info" : "quotes");
 
   const ddays = daysUntil(c.weddingDate);
   const dd = ddayLabel(ddays);
@@ -161,8 +166,8 @@ export default async function CaseDetailPage({
     : [[], [], []];
 
   const jump: Record<string, string> = {
-    "見積承認": "quotes", "発注確定": "orders",
-    "楽曲決定": "songs", "席次確定": "seating", "進行表作成": "rundown",
+    "見積承認": "quotes", "発注確定": "quotes",
+    "楽曲決定": "rundown", "席次確定": "seating", "進行表作成": "rundown",
   };
 
   // お客様の席次担当（新郎側/新婦側の分担入力。判定不能なら両方編集可）
@@ -224,11 +229,10 @@ export default async function CaseDetailPage({
       )}
       <div className={isStaff ? "cockpit-main" : ""}>
 
-      {/* 案件カード内ジャンプリンク（タブではなく同一ページ内のアンカー。お客様のスマホは下部ナビ導線があるため非表示） */}
+      {/* タブバー（1タブ=1業務。お客様のスマホは下部ナビがあるためPCのみ表示） */}
       <div className={s.role === "couple" ? "tabs pc-only" : "tabs"}>
-        <OpenSectionButton id="meetings" className="">📝 打ち合わせ</OpenSectionButton>
-        {visibleSections.map((sec) => (
-          <a key={sec.key} href={`#${sec.key}`}>{sec.label}</a>
+        {tabDefs.map((t2) => (
+          <Link key={t2.key} href={`/cases/${c.id}?tab=${t2.key}`} className={tab === t2.key ? "active" : ""}>{t2.label}</Link>
         ))}
       </div>
 
@@ -257,8 +261,8 @@ export default async function CaseDetailPage({
         {isStaff && (
           <div className="quick-actions">
             <Link className="btn" href={`/cases/${c.id}?tab=chat`}>💬 チャット</Link>
-            <OpenSectionButton id="meetings">📝 打ち合わせ</OpenSectionButton>
-            <a className="btn" href="#rundown">📋 進行表</a>
+            <Link className="btn" href={`/cases/${c.id}?tab=meetings`}>📝 打ち合わせ</Link>
+            <Link className="btn" href={`/cases/${c.id}?tab=rundown`}>📋 進行表</Link>
             {ddays >= 0 && ddays <= 1 && <a className="btn primary" href={`/live/${c.id}`}>▶ 当日運営</a>}
             <a className="btn" href={`/print/${c.id}/quote`} target="_blank">🖨 見積書</a>
           </div>
@@ -290,11 +294,11 @@ export default async function CaseDetailPage({
         </div>
       )}
 
-      {/* 📝 打ち合わせ記録（要約カード＋モーダル） */}
-      <SectionModal
-        id="meetings" icon="📝" title="打ち合わせ記録"
-        summary={`${c.meetings.length}回実施${nextMeeting ? ` ・ 次回 ${d(nextMeeting)}` : ""}`}
-      >
+      {/* ===== 📝 打ち合わせタブ ===== */}
+      {isStaff && tab === "meetings" && (<>
+      <div className="section-h"><h2>📝 打ち合わせ記録</h2>
+        <span className="pill gray">{c.meetings.length}回実施{nextMeeting ? ` ・ 次回 ${d(nextMeeting)}` : ""}</span>
+      </div>
         <div className="grid" style={{ gap: 14 }}>
           {can(s.role, "meetings", "edit") && (
             <div style={{ display: "flex" }}><MeetingForm caseId={c.id} /></div>
@@ -325,8 +329,10 @@ export default async function CaseDetailPage({
             </div>
           ))}
         </div>
-      </SectionModal>
+      </>)}
 
+      {/* ===== 📌 案件タブ（基本情報・ToDo・アンケート・リソース） ===== */}
+      {isStaff && tab === "info" && (<>
       <div className="grid cols-2">
       <CaseInfoCard
         caseId={c.id}
@@ -351,23 +357,23 @@ export default async function CaseDetailPage({
       />
       {/* 準備チェックリスト＋タスク・宿題を1枚に統合 */}
       <div className="card"><div className="card-h">✅ 準備チェックリスト・タスク<span className={`pill ${progress.percent === 100 ? "green" : "accent"}`}>{progress.percent}%</span></div><div className="card-b">
-        <OpenSectionButton id="meetings" className="list-row" style={{ cursor: "pointer", width: "100%", textAlign: "left" }}>
+        <Link href={`/cases/${c.id}?tab=meetings`} className="list-row" style={{ cursor: "pointer" }}>
           <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{c.meetings.length > 0 ? "✅" : "⬜"}</span>
           <div className="t">
             <b style={c.meetings.length > 0 ? { color: "var(--text3)" } : {}}>打ち合わせ開始</b>
             <span>{c.meetings.length}回実施</span>
           </div>
           <span style={{ color: "var(--text3)", fontSize: 12 }}>→</span>
-        </OpenSectionButton>
+        </Link>
         {progress.milestones.filter((m) => m.label !== "打ち合わせ開始").map((m) => (
-          <a key={m.label} href={`#${jump[m.label] ?? "quotes"}`} className="list-row" style={{ cursor: "pointer" }}>
+          <Link key={m.label} href={`/cases/${c.id}?tab=${jump[m.label] ?? "quotes"}`} className="list-row" style={{ cursor: "pointer" }}>
             <span style={{ fontSize: 16, width: 22, textAlign: "center" }}>{m.done ? "✅" : "⬜"}</span>
             <div className="t">
               <b style={m.done ? { color: "var(--text3)" } : {}}>{m.label}</b>
               <span>{m.hint}</span>
             </div>
             <span style={{ color: "var(--text3)", fontSize: 12 }}>→</span>
-          </a>
+          </Link>
         ))}
         <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />
         <TaskList
@@ -413,9 +419,39 @@ export default async function CaseDetailPage({
         </div></div>
       )}
       </div>
+      {(() => {
+        // 🏛 リソース確認（案件タブ内）：施設・設備・スタッフ・お客様の進行を1日バーチャートで
+        const iso = `${c.weddingDate.getFullYear()}-${String(c.weddingDate.getMonth() + 1).padStart(2, "0")}-${String(c.weddingDate.getDate()).padStart(2, "0")}`;
+        return (
+          <>
+            <div className="section-h" id="resources" style={{ marginTop: 24, marginBottom: 8 }}>
+              <h2>🏛 リソース確認</h2>
+              <span style={{ fontSize: 11.5, color: "var(--text3)" }}>施設・設備・スタッフ・お客様の進行を1本の時間軸で確認</span>
+            </div>
+            <DayVenueChart dateISO={iso} />
+            <div style={{ height: 14 }} />
+            <AssignmentsPanel
+              caseId={c.id}
+              caseType={c.caseType}
+              canEdit={can(s.role, "cases", "edit")}
+              weddingDate={c.weddingDate.toISOString()}
+              waitingVenues={resourceVenues.filter((v) => v.type === "waiting").map((v) => ({ id: v.id, name: v.name }))}
+              kitchenVenues={resourceVenues.filter((v) => v.type === "kitchen").map((v) => ({ id: v.id, name: v.name }))}
+              staffUsers={staffUsers}
+              assignments={assignments.map((a) => ({
+                id: a.id, kind: a.kind, label: a.label,
+                venueName: a.venue?.name ?? null, userName: a.user?.name ?? null,
+                startsAt: a.startsAt.toISOString(), endsAt: a.endsAt.toISOString(),
+              }))}
+            />
+          </>
+        );
+      })()}
+      </>)}
 
-      {/* 💰 見積 */}
-      <div className="section-h" id="quotes" style={{ marginTop: 24 }}><h2>💰 見積</h2></div>
+      {/* ===== 💰 みつもりタブ（見積・カタログ・発注・料理・請求） ===== */}
+      {tab === "quotes" && (<>
+      <div className="section-h" id="quotes"><h2>💰 見積</h2></div>
       {/* お客様向け：支払いスケジュールと入金状況（閲覧専用） */}
       {s.role === "couple" && (paymentPlans.length > 0 || invoices.length > 0) && (
         <div className="card" style={{ marginBottom: 14 }}>
@@ -461,13 +497,13 @@ export default async function CaseDetailPage({
         }))}
       />
 
-      {/* 🛍 カタログ：会場費・ドレス・料理・引き出物・その他をカタログから選んで見積へ（お客様=定価のみ／値引きはプランナー） */}
-      <div className="section-h" id="catalog" style={{ marginTop: 24 }}><h2>🛍 カタログ</h2></div>
-      <CatalogPanel caseId={c.id} isCouple={s.role === "couple"} categories={quoteCategories} caseType={c.caseType}
-        canAdd={s.role === "couple" || can(s.role, "quotes", "edit")} />
-
+      {/* 🛍 カタログ（スタッフ=みつもりタブ内）：カタログから選んで見積へ */}
       {isStaff && (
         <>
+          <div className="section-h" id="catalog" style={{ marginTop: 24 }}><h2>🛍 カタログ</h2></div>
+          <CatalogPanel caseId={c.id} isCouple={false} categories={quoteCategories} caseType={c.caseType}
+            canAdd={can(s.role, "quotes", "edit")} />
+
           <div className="section-h" id="orders" style={{ marginTop: 24 }}><h2>📦 発注</h2></div>
           <OrdersPanel
             caseId={c.id}
@@ -489,14 +525,40 @@ export default async function CaseDetailPage({
             reqs={c.mealReqs.map((m) => ({ id: m.id, guestLabel: m.guestLabel, type: m.type, detail: m.detail }))}
             menuItems={menuItems}
           />
+
+          <div className="section-h" id="billing" style={{ marginTop: 24 }}><h2>💴 請求・入金</h2></div>
+          <BillingPanel
+            caseId={c.id}
+            canEdit={can(s.role, "quotes", "edit")}
+            approvedTotal={c.quotes.find((q) => q.status === "approved")?.total ?? null}
+            plans={paymentPlans.map((p) => ({ id: p.id, label: p.label, amount: p.amount, dueAt: p.dueAt ? p.dueAt.toISOString() : null }))}
+            invoices={invoices.map((i) => ({
+              id: i.id, number: i.number, issuedAt: i.issuedAt.toISOString(),
+              dueAt: i.dueAt ? i.dueAt.toISOString() : null, amount: i.amount,
+              status: i.status, paidAt: i.paidAt ? i.paidAt.toISOString() : null, note: i.note,
+            }))}
+            customerName={c.brideName !== "―" ? `${c.groomName}・${c.brideName} 様` : `${c.groomName} 様`}
+          />
         </>
       )}
+      </>)}
 
-      <div className="section-h" id="seating" style={{ marginTop: 24 }}><h2>🪑 席次表</h2></div>
+      {/* ===== 👗 えらぶタブ（お客様のみ・カタログ） ===== */}
+      {!isStaff && tab === "catalog" && (<>
+        <div className="section-h" id="catalog"><h2>👗 えらぶ（カタログ）</h2></div>
+        <CatalogPanel caseId={c.id} isCouple categories={quoteCategories} caseType={c.caseType} canAdd />
+      </>)}
+
+      {/* ===== 🪑 席次タブ ===== */}
+      {tab === "seating" && (<>
+      <div className="section-h" id="seating"><h2>🪑 席次表</h2></div>
       <SeatingPanel caseId={c.id} canEdit={can(s.role, "seating", "edit")} canHall={can(s.role, "cases", "edit")} guestCount={c.guestCount} relations={relationOptions}
         lockSide={mySeatingSide} caseType={c.caseType} />
+      </>)}
 
-      <div className="section-h" id="rundown" style={{ marginTop: 24 }}><h2>📋 進行表</h2></div>
+      {/* ===== 📋 進行タブ（進行表・楽曲） ===== */}
+      {tab === "rundown" && (<>
+      <div className="section-h" id="rundown"><h2>📋 進行表</h2></div>
       <RundownEditor
         caseId={c.id}
         caseType={c.caseType}
@@ -542,48 +604,7 @@ export default async function CaseDetailPage({
         })}
       />
 
-      {isStaff && (() => {
-        // 当日の式場の動き（施設・設備・スタッフ・お客様の進行）を1日バーチャートで
-        const iso = `${c.weddingDate.getFullYear()}-${String(c.weddingDate.getMonth() + 1).padStart(2, "0")}-${String(c.weddingDate.getDate()).padStart(2, "0")}`;
-        return (
-          <>
-            <div className="section-h" id="resources" style={{ marginTop: 24, marginBottom: 8 }}>
-              <h2>🏛 リソース</h2>
-              <span style={{ fontSize: 11.5, color: "var(--text3)" }}>施設・設備・スタッフ・お客様の進行を1本の時間軸で確認</span>
-            </div>
-            <DayVenueChart dateISO={iso} />
-            <div style={{ height: 14 }} />
-            <AssignmentsPanel
-              caseId={c.id}
-              caseType={c.caseType}
-              canEdit={can(s.role, "cases", "edit")}
-              weddingDate={c.weddingDate.toISOString()}
-              waitingVenues={resourceVenues.filter((v) => v.type === "waiting").map((v) => ({ id: v.id, name: v.name }))}
-              kitchenVenues={resourceVenues.filter((v) => v.type === "kitchen").map((v) => ({ id: v.id, name: v.name }))}
-              staffUsers={staffUsers}
-              assignments={assignments.map((a) => ({
-                id: a.id, kind: a.kind, label: a.label,
-                venueName: a.venue?.name ?? null, userName: a.user?.name ?? null,
-                startsAt: a.startsAt.toISOString(), endsAt: a.endsAt.toISOString(),
-              }))}
-            />
-
-            <div className="section-h" id="billing" style={{ marginTop: 24 }}><h2>💴 請求・入金</h2></div>
-            <BillingPanel
-              caseId={c.id}
-              canEdit={can(s.role, "quotes", "edit")}
-              approvedTotal={c.quotes.find((q) => q.status === "approved")?.total ?? null}
-              plans={paymentPlans.map((p) => ({ id: p.id, label: p.label, amount: p.amount, dueAt: p.dueAt ? p.dueAt.toISOString() : null }))}
-              invoices={invoices.map((i) => ({
-                id: i.id, number: i.number, issuedAt: i.issuedAt.toISOString(),
-                dueAt: i.dueAt ? i.dueAt.toISOString() : null, amount: i.amount,
-                status: i.status, paidAt: i.paidAt ? i.paidAt.toISOString() : null, note: i.note,
-              }))}
-              customerName={c.brideName !== "―" ? `${c.groomName}・${c.brideName} 様` : `${c.groomName} 様`}
-            />
-          </>
-        );
-      })()}
+      </>)}
 
       </div>{/* /cockpit-main */}
       {isStaff && (
