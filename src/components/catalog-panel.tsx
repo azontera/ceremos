@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { isBridal, BRIDAL_ONLY_CATALOG_CATEGORIES } from "@/lib/terms";
 
 type CatalogItem = {
   id: string; category: string; name: string; desc: string | null; price: number;
@@ -17,8 +18,8 @@ const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 const CAT_ORDER = ["venue", "dress", "catering", "gift", "other"];
 
 export function CatalogPanel({
-  caseId, isCouple, categories, canAdd = true,
-}: { caseId: string; isCouple: boolean; categories: [string, string][]; canAdd?: boolean }) {
+  caseId, isCouple, categories, canAdd = true, caseType,
+}: { caseId: string; isCouple: boolean; categories: [string, string][]; canAdd?: boolean; caseType?: string }) {
   const router = useRouter();
   const [items, setItems] = useState<CatalogItem[] | null>(null);
   const [cat, setCat] = useState<string>("");
@@ -36,13 +37,16 @@ export function CatalogPanel({
   }, []);
 
   const catLabel = (c: string) => categories.find(([v]) => v === c)?.[1] ?? "その他";
+  // 宴会・式典モードでは婚礼専用カテゴリ（衣装＝dress）のタブ・品目を出さない（表示のみ。カタログデータは不変）
+  const bridal = isBridal(caseType);
   const cats = useMemo(() => {
-    const present = [...new Set((items ?? []).map((i) => i.category))];
+    const present = [...new Set((items ?? []).map((i) => i.category))]
+      .filter((c) => bridal || !BRIDAL_ONLY_CATALOG_CATEGORIES.includes(c));
     return present.sort((a, b) => {
       const ia = CAT_ORDER.indexOf(a); const ib = CAT_ORDER.indexOf(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
-  }, [items]);
+  }, [items, bridal]);
   const active = cat || cats[0] || "";
   const list = (items ?? []).filter((i) => i.category === active);
   // 出店店舗（最大3）ごとにまとめる。自社（式場）品目は先頭

@@ -3,6 +3,7 @@
 // ゲストのお名前を入力しながら、その場で卓・席番号を指定して入れ込めるリスト型UI。
 // レイアウト（円卓の配置図）はPC向けの席次表キャンバスと自動で同期する（同じAPIを使用）。
 import { useCallback, useEffect, useState } from "react";
+import { t as term, isBridal } from "@/lib/terms";
 
 type Table = { id: string; name: string; capacity: number; sortOrder: number };
 type Guest = { id: string; name: string; title: string | null; side: string; relation: string; tableId: string | null; seatNo: number | null; seatObjectId: string | null; allergy?: string | null };
@@ -10,9 +11,13 @@ type Guest = { id: string; name: string; title: string | null; side: string; rel
 const DEFAULT_RELATIONS = ["親族", "主賓", "上司", "同僚", "友人", "恩師", "その他"];
 
 export function MobileSeating({
-  caseId, canEdit, relations, lockSide,
-}: { caseId: string; canEdit: boolean; relations?: string[]; lockSide?: "groom" | "bride" | null }) {
+  caseId, canEdit, relations, lockSide, caseType,
+}: { caseId: string; canEdit: boolean; relations?: string[]; lockSide?: "groom" | "bride" | null; caseType?: string }) {
   const RELATIONS = relations && relations.length > 0 ? relations : DEFAULT_RELATIONS;
+  // 宴会・式典モードでは婚礼用語を出さない（表示のみ。side="groom"/"bride" のデータ値は不変）
+  const bridal = isBridal(caseType);
+  const sideLabel = (s: string) => (s === "bride" ? term("brideSide", caseType) : term("groomSide", caseType));
+  const sideEmoji = (s: string) => (s === "bride" ? (bridal ? "👰" : "👤") : (bridal ? "🤵" : "🏢"));
   const [tables, setTables] = useState<Table[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -101,13 +106,13 @@ export function MobileSeating({
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
             {lockSide ? (
               <span className={`pill ${lockSide === "groom" ? "blue" : "accent"}`} style={{ padding: "7px 14px" }}>
-                {lockSide === "groom" ? "🤵 新郎側（あなたの担当）" : "👰 新婦側（あなたの担当）"}
+                {`${sideEmoji(lockSide)} ${sideLabel(lockSide)}（あなたの担当）`}
               </span>
             ) : (<>
             <button type="button" className={`pill ${side === "groom" ? "blue" : "gray"}`} style={{ cursor: "pointer", border: "none", padding: "7px 14px" }}
-              onClick={() => setSide("groom")}>🤵 新郎側</button>
+              onClick={() => setSide("groom")}>{sideEmoji("groom")} {sideLabel("groom")}</button>
             <button type="button" className={`pill ${side === "bride" ? "accent" : "gray"}`} style={{ cursor: "pointer", border: "none", padding: "7px 14px" }}
-              onClick={() => setSide("bride")}>👰 新婦側</button>
+              onClick={() => setSide("bride")}>{sideEmoji("bride")} {sideLabel("bride")}</button>
             </>)}
             <select className="form-input" style={{ padding: "7px 10px", flex: 1, minWidth: 90 }} value={relation}
               onChange={(e) => setRelation(e.target.value)}>
@@ -157,6 +162,7 @@ export function MobileSeating({
               {gs.length === 0 && <div className="empty" style={{ padding: 8 }}>まだゲストがいません</div>}
               {gs.map((g) => (
                 <GuestRow key={g.id} g={g} tables={tables} canEdit={canTouch(g)}
+                  sideTag={bridal ? (g.side === "bride" ? "新婦" : "新郎") : sideLabel(g.side)}
                   editing={editingGuest === g.id}
                   onEdit={() => setEditingGuest(editingGuest === g.id ? null : g.id)}
                   onMove={(tid) => { setEditingGuest(null); op({ op: "updateGuest", guestId: g.id, tableId: tid }); }}
@@ -178,6 +184,7 @@ export function MobileSeating({
           <div className="card-b" style={{ padding: "6px 14px 10px" }}>
             {unassigned.map((g) => (
               <GuestRow key={g.id} g={g} tables={tables} canEdit={canTouch(g)}
+                  sideTag={bridal ? (g.side === "bride" ? "新婦" : "新郎") : sideLabel(g.side)}
                 editing={editingGuest === g.id}
                 onEdit={() => setEditingGuest(editingGuest === g.id ? null : g.id)}
                 onMove={(tid) => { setEditingGuest(null); op({ op: "updateGuest", guestId: g.id, tableId: tid }); }}
@@ -199,16 +206,16 @@ export function MobileSeating({
 }
 
 function GuestRow({
-  g, tables, canEdit, editing, onEdit, onMove, onDelete, onAllergy,
+  g, tables, canEdit, editing, sideTag, onEdit, onMove, onDelete, onAllergy,
 }: {
-  g: Guest; tables: Table[]; canEdit: boolean; editing: boolean;
+  g: Guest; tables: Table[]; canEdit: boolean; editing: boolean; sideTag: string;
   onEdit: () => void; onMove: (tableId: string | null) => void; onDelete: () => void; onAllergy: () => void;
 }) {
   return (
     <div style={{ borderBottom: "1px solid var(--border)", padding: "7px 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span className={`pill ${g.side === "bride" ? "accent" : "blue"}`} style={{ fontSize: 10.5 }}>
-          {g.side === "bride" ? "新婦" : "新郎"}
+          {sideTag}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <b style={{ fontSize: 13.5 }}>{g.name} 様</b>

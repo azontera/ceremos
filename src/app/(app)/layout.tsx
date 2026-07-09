@@ -91,6 +91,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         )}
         {["admin", "manager", "planner"].includes(s.role) && (
           <>
+            <Link href="/reports" className="nav-item">📊 成果</Link>
             <div className="navlabel">マスタ・管理</div>
             <Link href="/customers" className="nav-item">💐 顧客マスタ</Link>
             <Link href="/admin/catalog" className="nav-item">🛍 カタログ管理</Link>

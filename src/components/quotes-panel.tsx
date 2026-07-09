@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { scaleQuoteItems } from "@/lib/pack-scaling";
+import { t as term } from "@/lib/terms";
 
 type Item = { id?: string; name: string; category: string; qty: number; unitPrice: number; vendorId?: string | null; perGuest?: number | boolean };
 type Quote = {
@@ -9,12 +10,13 @@ type Quote = {
   createdAt: string; items: Item[];
 };
 
-const STATUS: Record<string, { label: string; cls: string }> = {
+// 「confirmed」の表示名は案件タイプ連動（婚礼=新郎新婦／宴会=主催者）のため関数化
+const statusMap = (caseType?: string): Record<string, { label: string; cls: string }> => ({
   draft: { label: "下書き", cls: "gray" },
-  confirmed: { label: "新郎新婦 確認済", cls: "amber" },
+  confirmed: { label: `${term("couple", caseType)} 確認済`, cls: "amber" },
   approved: { label: "承認済", cls: "green" },
   archived: { label: "アーカイブ", cls: "gray" },
-};
+});
 const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 
 // 部門（カテゴリ）定義 — この順で表示
@@ -26,13 +28,15 @@ export const QUOTE_CATEGORIES: [string, string][] = [
   ["discount", "値引・特典"], ["other", "その他"],
 ];
 export function QuotesPanel({
-  caseId, quotes, canEdit, canApprove, vendors = [], categories, guestCount = 0,
+  caseId, quotes, canEdit, canApprove, vendors = [], categories, guestCount = 0, caseType,
 }: {
   caseId: string; quotes: Quote[]; canEdit: boolean; canApprove: boolean;
   vendors?: { id: string; name: string }[];
   categories?: [string, string][]; // 部門マスタ（未指定は既定値）
   guestCount?: number; // 案件の予定人数（テンプレ選択時に「× ◯名」品目の数量を自動調整）
+  caseType?: string; // 用語切替（婚礼以外は「主催者」等の宴会用語）
 }) {
+  const STATUS = statusMap(caseType);
   const CATS = categories && categories.length > 0 ? categories : QUOTE_CATEGORIES;
   const catLabel = (c: string) => CATS.find(([v]) => v === c)?.[1] ?? "その他";
   const catOrder = (c: string) => {
@@ -480,7 +484,7 @@ export function QuotesPanel({
                         : <span className="pill amber">支配人の承認待ち</span>
                     )}
                     {q.status === "approved" && canApprove && (
-                      <button className="btn sm" title="承認を取り消して「新郎新婦確認済」に差し戻します"
+                      <button className="btn sm" title={`承認を取り消して「${term("couple", caseType)}確認済」に差し戻します`}
                         onClick={() => { if (confirm(`Ver.${q.version} の承認を取り消しますか？`)) setStatus(q.id, "confirmed"); }}>承認を取り消す</button>
                     )}{" "}
                     {canEdit && ["confirmed", "approved"].includes(q.status) && q.id === latest?.id && (

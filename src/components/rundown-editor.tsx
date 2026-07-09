@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { mcTemplates } from "@/lib/mc-templates";
+import { isBridal } from "@/lib/terms";
 
 type Item = {
   id: string; time: string; title: string; note: string | null;
@@ -17,16 +18,18 @@ const ROLE_OPTS: [string, string][] = [
 
 // 新規シーンのプリセット（選ぶと演目名・担当・所要・おすすめ選曲のシーンが自動設定される）
 // useSong: 楽曲を使うのが定番のシーンは最初から「楽曲を使用」にチェックが入る
-const SCENE_PRESETS: { value: string; label: string; title: string; roles: string; dur: number; songScene: string; useSong: boolean }[] = [
-  { value: "chapel", label: "⛪ チャペル挙式", title: "挙式（チャペル）", roles: "mc,audio,photo", dur: 30, songScene: "chapel", useSong: true },
-  { value: "entrance", label: "🚪 入場", title: "新郎新婦 入場", roles: "mc,audio,photo", dur: 5, songScene: "entrance", useSong: true },
+// bridalOnly: 婚礼専用シーン（宴会・式典案件では選択肢に出さない）
+// bqTitle: 宴会・式典案件で使う汎用タイトル（未指定はtitleのまま）
+const SCENE_PRESETS: { value: string; label: string; title: string; roles: string; dur: number; songScene: string; useSong: boolean; bridalOnly?: boolean; bqTitle?: string }[] = [
+  { value: "chapel", label: "⛪ チャペル挙式", title: "挙式（チャペル）", roles: "mc,audio,photo", dur: 30, songScene: "chapel", useSong: true, bridalOnly: true },
+  { value: "entrance", label: "🚪 入場", title: "新郎新婦 入場", roles: "mc,audio,photo", dur: 5, songScene: "entrance", useSong: true, bqTitle: "主催者 入場" },
   { value: "toast", label: "🥂 乾杯", title: "ウェルカムスピーチ・乾杯", roles: "mc,catering", dur: 15, songScene: "toast", useSong: true },
-  { value: "cake", label: "🎂 ケーキカット", title: "ケーキ入刀・ファーストバイト", roles: "mc,audio,photo", dur: 15, songScene: "cake", useSong: true },
+  { value: "cake", label: "🎂 ケーキカット", title: "ケーキ入刀・ファーストバイト", roles: "mc,audio,photo", dur: 15, songScene: "cake", useSong: true, bridalOnly: true },
   { value: "meal", label: "🍽 お食事・歓談", title: "お食事・ご歓談", roles: "catering,service", dur: 30, songScene: "party", useSong: true },
-  { value: "leave", label: "👗 中座", title: "中座（お色直し）", roles: "mc,audio", dur: 20, songScene: "leave", useSong: true },
+  { value: "leave", label: "👗 中座", title: "中座（お色直し）", roles: "mc,audio", dur: 20, songScene: "leave", useSong: true, bridalOnly: true },
   { value: "reentry", label: "✨ 再入場", title: "再入場・テーブルラウンド", roles: "mc,audio,photo", dur: 20, songScene: "reentry", useSong: true },
   { value: "performance", label: "🎤 余興・スピーチ", title: "ご友人による余興", roles: "mc,audio", dur: 15, songScene: "party", useSong: true },
-  { value: "bouquet", label: "💐 手紙・花束", title: "新婦の手紙・花束贈呈", roles: "mc,audio", dur: 20, songScene: "bouquet", useSong: true },
+  { value: "bouquet", label: "💐 手紙・花束", title: "新婦の手紙・花束贈呈", roles: "mc,audio", dur: 20, songScene: "bouquet", useSong: true, bridalOnly: true },
   { value: "farewell", label: "🎁 送賓", title: "送賓（プチギフト）", roles: "service,audio", dur: 20, songScene: "farewell", useSong: true },
   { value: "custom", label: "✏️ 自由入力", title: "", roles: "", dur: 10, songScene: "", useSong: true },
 ];
@@ -59,8 +62,12 @@ function sceneForTitle(title: string): string | null {
 }
 
 export function RundownEditor({
-  caseId, items, canEdit, songs, groomName, brideName,
-}: { caseId: string; items: Item[]; canEdit: boolean; songs: SongInfo[]; groomName: string; brideName: string }) {
+  caseId, items, canEdit, songs, groomName, brideName, caseType,
+}: { caseId: string; items: Item[]; canEdit: boolean; songs: SongInfo[]; groomName: string; brideName: string; caseType?: string }) {
+  // 宴会・式典モード：婚礼専用プリセットを除外し、タイトルの「新郎新婦」を汎用語に（表示・入力初期値のみ。データは不変）
+  const bridal = isBridal(caseType);
+  const presets = bridal ? SCENE_PRESETS : SCENE_PRESETS.filter((p) => !p.bridalOnly);
+  const presetTitle = (p: (typeof SCENE_PRESETS)[number]) => (!bridal && p.bqTitle ? p.bqTitle : p.title);
   const router = useRouter();
   const [editId, setEditId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -175,7 +182,7 @@ export function RundownEditor({
     const applyScene = (p: (typeof SCENE_PRESETS)[number]) => {
       setScene(p.value);
       if (p.value !== "custom") {
-        setTitle(p.title);
+        setTitle(presetTitle(p));
         setRoles(p.roles.split(",").filter(Boolean));
         setDur(String(p.dur));
       } else {
@@ -206,7 +213,7 @@ export function RundownEditor({
         {!item && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             <span style={{ fontSize: 12, fontWeight: 700 }}>シーン:</span>
-            {SCENE_PRESETS.map((p) => (
+            {presets.map((p) => (
               <button type="button" key={p.value} onClick={() => applyScene(p)}
                 className={`pill ${scene === p.value ? "accent" : "gray"}`}
                 style={{ cursor: "pointer", border: "none" }}>
@@ -216,7 +223,7 @@ export function RundownEditor({
           </div>
         )}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <input className="form-input" style={{ flex: 2, minWidth: 150 }} value={title} placeholder="演目（例：ケーキ入刀）"
+          <input className="form-input" style={{ flex: 2, minWidth: 150 }} value={title} placeholder={bridal ? "演目（例：ケーキ入刀）" : "演目（例：乾杯）"}
             onChange={(e) => setTitle(e.target.value)} required />
           <span style={{ fontSize: 12, color: "var(--text3)" }}>所要</span>
           <input className="form-input" style={{ width: 72 }} type="number" min={1} max={600}

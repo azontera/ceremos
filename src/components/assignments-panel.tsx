@@ -5,6 +5,7 @@
 // 他の式との取り合い（同じ控室・同じスタッフの時間かぶり）は自動でブロックされる
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { t as term, isBridal } from "@/lib/terms";
 
 type Assignment = {
   id: string; kind: string; label: string;
@@ -33,13 +34,18 @@ const PRESETS: { icon: string; name: string; kind: string; label: string; start:
 ];
 
 export function AssignmentsPanel({
-  caseId, assignments, waitingVenues, kitchenVenues, staffUsers, canEdit, weddingDate,
+  caseId, assignments, waitingVenues, kitchenVenues, staffUsers, canEdit, weddingDate, caseType,
 }: {
   caseId: string; assignments: Assignment[];
   waitingVenues: Opt[]; kitchenVenues: Opt[]; staffUsers: Opt[];
-  canEdit: boolean; weddingDate: string;
+  canEdit: boolean; weddingDate: string; caseType?: string;
 }) {
   const router = useRouter();
+  // 宴会・式典モード：既定リソース名の「新郎新婦」を「主催者」に（新規入力の初期値のみ。既存データは不変）
+  const bridal = isBridal(caseType);
+  const presets = bridal ? PRESETS : PRESETS.map((p) =>
+    p.name === "新郎新婦 控室" ? { ...p, name: `${term("couple", caseType)} 控室`, label: `${term("couple", caseType)} 控室` } : p
+  );
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   // ①なにを ②どこ・だれ ③いつ（フォームは常に見える・プリセットで自動入力）
@@ -105,7 +111,7 @@ export function AssignmentsPanel({
           {/* ①なにを：よくあるリソースをタップ */}
           <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>① なにを使う？（タップで自動入力）</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-            {PRESETS.map((p) => (
+            {presets.map((p) => (
               <button type="button" key={p.name} className={`pill ${label === p.label ? "accent" : "gray"}`}
                 style={{ cursor: "pointer", border: "none", fontSize: 12, padding: "6px 12px" }}
                 onClick={() => applyPreset(p)}>
@@ -119,7 +125,7 @@ export function AssignmentsPanel({
               {Object.entries(KINDS).map(([v, k]) => <option key={v} value={v}>{k.icon} {k.label}</option>)}
             </select>
             <input className="form-input" style={{ flex: 1, minWidth: 160 }} value={label}
-              placeholder="名称（例：プロジェクター／新婦控室として）"
+              placeholder={bridal ? "名称（例：プロジェクター／新婦控室として）" : "名称（例：プロジェクター／控室として）"}
               onChange={(e) => setLabel(e.target.value)} />
           </div>
 

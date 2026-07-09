@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CUE_TIMINGS } from "@/lib/cue-timings";
+import { t as term, isBridal } from "@/lib/terms";
 
 type Media = { id: string; fileName: string; mime: string | null } | null;
 // 進行表の行と同じデータ（進行表がマスター：順序・時刻・追加・削除は進行表側で管理）
@@ -66,9 +67,11 @@ function titleFromFileName(fileName: string): { title: string; artist: string | 
 }
 
 export function SongsPanel({
-  caseId, initial, canEdit, isStaff = false,
-}: { caseId: string; initial: LinkedSong[]; canEdit: boolean; isStaff?: boolean }) {
+  caseId, initial, canEdit, isStaff = false, caseType,
+}: { caseId: string; initial: LinkedSong[]; canEdit: boolean; isStaff?: boolean; caseType?: string }) {
   const router = useRouter();
+  // 宴会・式典モードでは婚礼用語（新郎/新婦）を出さない（表示文言のみ。データ・APIは不変）
+  const bridal = isBridal(caseType);
   const [rows, setRows] = useState(initial.map((r) => ({
     ...r,
     title: r.title === "（曲未定）" ? "" : r.title, // 未定は空欄として編集
@@ -371,13 +374,13 @@ export function SongsPanel({
           {/* 好きなアーティスト・曲（自由記入）：おすすめ・おまかせ選曲を強くブースト */}
           <div className="quiz-artists" style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginTop: 14 }}>
             <div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}>🤵 新郎の好きなアーティスト・曲</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}>{bridal ? "🤵 新郎" : `🏢 ${term("groom", caseType)}`}の好きなアーティスト・曲</div>
               <textarea className="form-input" rows={2} value={quiz.groomArtists ?? ""}
                 placeholder="例：Mr.Children、Official髭男dism、Subtitle"
                 onChange={(e) => setQuiz((x) => ({ ...x, groomArtists: e.target.value }))} />
             </div>
             <div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}>👰 新婦の好きなアーティスト・曲</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}>{bridal ? "👰 新婦" : `👤 ${term("bride", caseType)}`}の好きなアーティスト・曲</div>
               <textarea className="form-input" rows={2} value={quiz.brideArtists ?? ""}
                 placeholder="例：YOASOBI、back number、ハナミズキ"
                 onChange={(e) => setQuiz((x) => ({ ...x, brideArtists: e.target.value }))} />
@@ -461,7 +464,7 @@ export function SongsPanel({
                     onChange={(e) => {
                       const v = e.target.value;
                       if (v === "__free__") {
-                        const t = prompt("流すタイミングを入力（例：新婦手紙の朗読終わりで）", r.cueTiming ?? "");
+                        const t = prompt(bridal ? "流すタイミングを入力（例：新婦手紙の朗読終わりで）" : "流すタイミングを入力（例：代表挨拶の終わりで）", r.cueTiming ?? "");
                         if (t !== null) saveCue(r, t.trim() || null);
                       } else if (v === "__custom__") {
                         /* 現在の自由入力値のまま */

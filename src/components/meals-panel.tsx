@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isBridal } from "@/lib/terms";
 
 type Req = { id: string; guestLabel: string; type: string; detail: string };
 type MenuItem = { id: string; course: string; name: string; desc: string | null; cost: number; price: number };
@@ -17,8 +18,8 @@ export const COURSES = ["コース料理", "乾杯酒", "アミューズ", "前�
 const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 
 export function MealsPanel({
-  caseId, reqs, canEdit, menuItems = [],
-}: { caseId: string; reqs: Req[]; canEdit: boolean; menuItems?: MenuItem[] }) {
+  caseId, reqs, canEdit, menuItems = [], caseType,
+}: { caseId: string; reqs: Req[]; canEdit: boolean; menuItems?: MenuItem[]; caseType?: string }) {
   const router = useRouter();
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -282,7 +283,7 @@ export function MealsPanel({
 
       {canEdit && (
         <form className="card" style={{ padding: 16, marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} onSubmit={add}>
-          <input className="form-input" style={{ width: 160 }} name="guestLabel" placeholder="ゲスト（例：新婦友人 A様）" required />
+          <input className="form-input" style={{ width: 160 }} name="guestLabel" placeholder={isBridal(caseType) ? "ゲスト（例：新婦友人 A様）" : "ゲスト（例：来賓 A様）"} required />
           <select className="form-input" style={{ width: 130 }} name="type">
             {Object.entries(TYPES).map(([v, t]) => <option key={v} value={v}>{t.label}</option>)}
           </select>

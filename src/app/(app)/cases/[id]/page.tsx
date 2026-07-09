@@ -30,6 +30,7 @@ import { CaseInfoCard } from "@/components/case-info-card";
 import { DayVenueChart } from "@/components/day-venue-chart";
 import { SectionModal, OpenSectionButton } from "@/components/section-modal";
 import { SalesStepNav } from "@/components/sales-step-nav";
+import { LostCaseButton } from "@/components/lost-case-button";
 import { StrategyPanel, type StrategyData } from "@/components/strategy-panel";
 import { computeSalesSteps } from "@/lib/sales-steps";
 import { isBridal } from "@/lib/terms";
@@ -207,6 +208,11 @@ export default async function CaseDetailPage({
         {c.status === "tentative" && <span className="pill violet">仮予約</span>}
         <span className={`dday ${dd.cls}`}>{dd.text}</span>
         <span className="pill gray">{c.guestCount}名</span>
+        {isStaff && can(s.role, "cases", "edit") && (
+          <span style={{ marginLeft: "auto" }}>
+            <LostCaseButton caseId={c.id} isLost={c.status === "lost"} lostReason={c.lostReason} />
+          </span>
+        )}
       </div>
 
       {/* 案件コックピット：左=商談ステップナビ／中央=作業エリア／右=顧客攻略パネル（スタッフのみ3ペイン） */}
@@ -442,6 +448,7 @@ export default async function CaseDetailPage({
       )}
       <QuotesPanel
         caseId={c.id}
+        caseType={c.caseType}
         guestCount={c.guestCount}
         canEdit={can(s.role, "quotes", "edit")}
         canApprove={["admin", "manager"].includes(s.role)}
@@ -456,7 +463,7 @@ export default async function CaseDetailPage({
 
       {/* 🛍 カタログ：会場費・ドレス・料理・引き出物・その他をカタログから選んで見積へ（お客様=定価のみ／値引きはプランナー） */}
       <div className="section-h" id="catalog" style={{ marginTop: 24 }}><h2>🛍 カタログ</h2></div>
-      <CatalogPanel caseId={c.id} isCouple={s.role === "couple"} categories={quoteCategories}
+      <CatalogPanel caseId={c.id} isCouple={s.role === "couple"} categories={quoteCategories} caseType={c.caseType}
         canAdd={s.role === "couple" || can(s.role, "quotes", "edit")} />
 
       {isStaff && (
@@ -477,6 +484,7 @@ export default async function CaseDetailPage({
           <div className="section-h" id="meals" style={{ marginTop: 24 }}><h2>🍽 料理</h2></div>
           <MealsPanel
             caseId={c.id}
+            caseType={c.caseType}
             canEdit={can(s.role, "meals", "edit") || can(s.role, "cases", "edit")}
             reqs={c.mealReqs.map((m) => ({ id: m.id, guestLabel: m.guestLabel, type: m.type, detail: m.detail }))}
             menuItems={menuItems}
@@ -486,11 +494,12 @@ export default async function CaseDetailPage({
 
       <div className="section-h" id="seating" style={{ marginTop: 24 }}><h2>🪑 席次表</h2></div>
       <SeatingPanel caseId={c.id} canEdit={can(s.role, "seating", "edit")} canHall={can(s.role, "cases", "edit")} guestCount={c.guestCount} relations={relationOptions}
-        lockSide={mySeatingSide} />
+        lockSide={mySeatingSide} caseType={c.caseType} />
 
       <div className="section-h" id="rundown" style={{ marginTop: 24 }}><h2>📋 進行表</h2></div>
       <RundownEditor
         caseId={c.id}
+        caseType={c.caseType}
         canEdit={can(s.role, "rundown", "edit")}
         groomName={c.groomName}
         brideName={c.brideName}
@@ -512,6 +521,7 @@ export default async function CaseDetailPage({
       <div className="section-h" id="songs" style={{ marginTop: 24 }}><h2>🎵 楽曲</h2></div>
       <SongsPanel
         caseId={c.id}
+        caseType={c.caseType}
         canEdit={can(s.role, "songs", "edit")}
         isStaff={s.role !== "couple"}
         initial={c.rundownItems.map((r) => {
@@ -545,6 +555,7 @@ export default async function CaseDetailPage({
             <div style={{ height: 14 }} />
             <AssignmentsPanel
               caseId={c.id}
+              caseType={c.caseType}
               canEdit={can(s.role, "cases", "edit")}
               weddingDate={c.weddingDate.toISOString()}
               waitingVenues={resourceVenues.filter((v) => v.type === "waiting").map((v) => ({ id: v.id, name: v.name }))}

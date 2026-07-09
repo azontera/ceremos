@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileSeating } from "./mobile-seating";
+import { t as term, isBridal } from "@/lib/terms";
 
 type Table = { id: string; name: string; capacity: number; sizeCm?: number; sortOrder: number; posX: number; posY: number };
 type Guest = { id: string; name: string; title: string | null; side: string; relation: string; tableId: string | null; seatNo: number | null; seatObjectId: string | null; allergy: string | null };
@@ -17,9 +18,13 @@ const TABLE_SIZES: [number, string][] = [
 ];
 
 export function SeatingPanel({
-  caseId, canEdit: canEditProp, canHall, guestCount, relations, lockSide,
-}: { caseId: string; canEdit: boolean; canHall: boolean; guestCount: number; relations?: string[]; lockSide?: "groom" | "bride" | null }) {
+  caseId, canEdit: canEditProp, canHall, guestCount, relations, lockSide, caseType,
+}: { caseId: string; canEdit: boolean; canHall: boolean; guestCount: number; relations?: string[]; lockSide?: "groom" | "bride" | null; caseType?: string }) {
   const RELATIONS = relations && relations.length > 0 ? relations : DEFAULT_RELATIONS;
+  // 宴会・式典モードでは婚礼用語（新郎側/新婦側）を出さない（表示文字列のみ。side="groom"/"bride" のデータ値は不変）
+  const bridal = isBridal(caseType);
+  const sideLabel = (side: string) => (side === "bride" ? term("brideSide", caseType) : term("groomSide", caseType));
+  const sideEmoji = (side: string) => (side === "bride" ? (bridal ? "👰" : "👤") : (bridal ? "🤵" : "🏢"));
   // ✏ 編集モード：「編集する」を押すまでレイアウトはロック（誤ドラッグ防止）。「抜ける」で閲覧に戻る
   // 以降の canEdit はすべて「編集権限あり かつ 編集モード中」を意味する
   const [editMode, setEditMode] = useState(false);
@@ -254,7 +259,8 @@ export function SeatingPanel({
     const lines = [
       "氏名,肩書,側,間柄,卓名,アレルギー",
       ...guests.map((g) => [
-        g.name, g.title ?? "", g.side === "bride" ? "新婦" : "新郎", g.relation,
+        // 側の値：婚礼は従来どおり「新郎/新婦」。宴会は取込互換のため raw値（groom/bride）で出力（サーバー取込は 新婦/bride のみ bride 判定）
+        g.name, g.title ?? "", bridal ? (g.side === "bride" ? "新婦" : "新郎") : g.side, g.relation,
         tables.find((t) => t.id === g.tableId)?.name
           ?? (g.seatObjectId ? objects.find((o) => o.id === g.seatObjectId)?.label ?? "椅子席" : ""),
         g.allergy ?? "",
@@ -305,7 +311,7 @@ export function SeatingPanel({
       <span
         className={`seat-chip ${g.side} ${selected === g.id ? "selected" : ""}`}
         style={style}
-        title={`${g.name} 様（${g.side === "groom" ? "新郎側" : "新婦側"}・${g.relation}${g.title ? `・${g.title}` : ""}${g.allergy ? `・⚠${g.allergy}` : ""}）`}
+        title={`${g.name} 様（${sideLabel(g.side)}・${g.relation}${g.title ? `・${g.title}` : ""}${g.allergy ? `・⚠${g.allergy}` : ""}）`}
         draggable={canEdit}
         onDragStart={(e) => { e.dataTransfer.setData("text/plain", g.id); setSelected(null); }}
         onClick={(e) => { e.stopPropagation(); canEdit && setSelected(selected === g.id ? null : g.id); }}
@@ -340,8 +346,8 @@ export function SeatingPanel({
     <>
       <div className="section-h" style={{ margin: "0 0 12px" }}>
         <span className="pill gray">登録 {guests.length} / 予定 {guestCount}名</span>
-        <span className="pill blue">新郎側 {guests.filter((g) => g.side === "groom").length}</span>
-        <span className="pill accent">新婦側 {guests.filter((g) => g.side === "bride").length}</span>
+        <span className="pill blue">{sideLabel("groom")} {guests.filter((g) => g.side === "groom").length}</span>
+        <span className="pill accent">{sideLabel("bride")} {guests.filter((g) => g.side === "bride").length}</span>
         {hallMeters && (
           <span className="pill green" title="会場マスタの実寸を反映（1m＝80px。円卓Ø200cm・長机180cm×45cmの実寸比）">
             📐 実寸 {hallMeters.w}m × {hallMeters.h}m
@@ -366,7 +372,7 @@ export function SeatingPanel({
       </div>
       {/* 📱 かんたん入力（スマホ最適化）：名前を入力しながら卓・席をその場で指定 */}
       {simpleMode && (
-        <MobileSeating caseId={caseId} canEdit={canEditProp} relations={RELATIONS} lockSide={lockSide} />
+        <MobileSeating caseId={caseId} canEdit={canEditProp} relations={RELATIONS} lockSide={lockSide} caseType={caseType} />
       )}
       {!simpleMode && <>
       {err && <div className="form-err" style={{ marginBottom: 10 }}>{err}</div>}
@@ -446,7 +452,7 @@ export function SeatingPanel({
         <div className="card" style={{ padding: "10px 16px", marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderColor: "var(--amber)" }}>
           <span className="pill amber">選択中</span>
           <b>{selectedGuest.name} 様</b>
-          <span className={`pill ${selectedGuest.side === "groom" ? "blue" : "accent"}`}>{selectedGuest.side === "groom" ? "新郎側" : "新婦側"}</span>
+          <span className={`pill ${selectedGuest.side === "groom" ? "blue" : "accent"}`}>{sideLabel(selectedGuest.side)}</span>
           <span className="pill gray">{selectedGuest.relation}</span>
           {selectedGuest.title && <span className="pill gray">{selectedGuest.title}</span>}
           {selectedGuest.allergy && <span className="pill red">⚠ {selectedGuest.allergy}</span>}
@@ -849,7 +855,7 @@ export function SeatingPanel({
                 name="title" placeholder="肩書（例：㈱◯◯ 代表取締役）※任意" />
               <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                 <select className="form-input" style={{ flex: 1, padding: "4px 6px", fontSize: 11.5 }} name="side">
-                  <option value="groom">新郎側</option><option value="bride">新婦側</option>
+                  <option value="groom">{sideLabel("groom")}</option><option value="bride">{sideLabel("bride")}</option>
                 </select>
                 <select className="form-input" style={{ flex: 1, padding: "4px 6px", fontSize: 11.5 }} name="relation">
                   {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -885,7 +891,7 @@ export function SeatingPanel({
                   color: side === "groom" ? "var(--blue)" : "var(--accent-text)",
                   borderBottom: `1.5px solid ${side === "groom" ? "var(--blue)" : "var(--accent)"}`,
                 }}>
-                  {side === "groom" ? "🤵 新郎側" : "👰 新婦側"} <span style={{ fontWeight: 500, fontSize: 11 }}>{sideGuests.length}名</span>
+                  {sideEmoji(side)} {sideLabel(side)} <span style={{ fontWeight: 500, fontSize: 11 }}>{sideGuests.length}名</span>
                 </div>
                 {relOrder.map((rel) => {
                   const group = sideGuests.filter((g) => g.relation === rel);
@@ -908,7 +914,7 @@ export function SeatingPanel({
               <input className="form-input" style={{ flex: 1, minWidth: 130 }} name="name" placeholder="ゲスト氏名" required />
               <input className="form-input" style={{ flex: 1, minWidth: 130 }} name="title" placeholder="肩書（任意）" />
               <select className="form-input" style={{ width: 96 }} name="side">
-                <option value="groom">新郎側</option><option value="bride">新婦側</option>
+                <option value="groom">{sideLabel("groom")}</option><option value="bride">{sideLabel("bride")}</option>
               </select>
               <select className="form-input" style={{ width: 96 }} name="relation">
                 {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -923,7 +929,7 @@ export function SeatingPanel({
               </label>
             </form>
             <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 6 }}>
-              CSV形式：<code>氏名,肩書,側(新郎/新婦),間柄,卓名</code>（1行目ヘッダー可・Excelから保存したCSVもOK・卓名が一致すると自動で着席）
+              CSV形式：<code>{bridal ? "氏名,肩書,側(新郎/新婦),間柄,卓名" : "氏名,肩書,側(groom/bride),間柄,卓名"}</code>（1行目ヘッダー可・Excelから保存したCSVもOK・卓名が一致すると自動で着席）
             </p>
           </>
         )}
