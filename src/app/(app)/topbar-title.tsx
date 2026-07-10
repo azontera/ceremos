@@ -25,15 +25,23 @@ const COUPLE_TITLES: [RegExp, string][] = [
 // トップバー側の汎用タイトル「案件詳細」＋日付は重複でしかない → 非表示にする
 const SUPPRESS_ON = [/^\/cases\/[^/]+/];
 
-export function TopbarTitle({ couple = false, dateText }: { couple?: boolean; dateText: string }) {
+// トップバー全体（タイトル＋日付＋右側の子要素＝通知ベル等）をここで組み立てる。
+// タイトルを非表示にするページでは、余白ごと消して細いバーにする（空白だけ残るのを防ぐ）。
+export function Topbar({ couple = false, dateText, children }: { couple?: boolean; dateText: string; children?: React.ReactNode }) {
   const pathname = usePathname() ?? "";
-  if (SUPPRESS_ON.some((re) => re.test(pathname))) return null;
+  const suppressed = SUPPRESS_ON.some((re) => re.test(pathname));
   const list = couple ? COUPLE_TITLES : TITLES;
   const title = list.find(([re]) => re.test(pathname))?.[1] ?? "ホーム";
   return (
-    <div>
-      <h1>{title}</h1>
-      <div className="date">{dateText}</div>
-    </div>
+    <header className={`topbar${suppressed ? " topbar-slim" : ""}`}>
+      {!suppressed && (
+        <div>
+          <h1>{title}</h1>
+          <div className="date">{dateText}</div>
+        </div>
+      )}
+      <div className="grow" />
+      {children}
+    </header>
   );
 }

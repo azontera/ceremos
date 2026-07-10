@@ -76,6 +76,8 @@ input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
 }
 .topbar h1{font-size:17px;font-weight:700}
 .topbar .date{font-size:12.5px;color:var(--text2)}
+/* タイトルを出さないページ（案件詳細など・ページ内に独自の見出しを持つ）は余白だけ残さず細くする */
+.topbar-slim{padding:8px 28px}
 .topbar .grow{flex:1}
 .content{padding:24px 28px 60px;max-width:1240px;width:100%;margin:0 auto}
 

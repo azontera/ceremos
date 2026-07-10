@@ -494,16 +494,18 @@ export function SeatingPanel({
         </div>
       )}
 
-      {/* 🔍 ズームバー＋選択ツールバー */}
-      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 700 }}>🔍 表示</span>
-        <button className="btn sm" onClick={() => setZoomClamped(zoom - 0.1)} title="縮小">−</button>
-        <span style={{ fontSize: 12, fontWeight: 700, minWidth: 44, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{Math.round(zoom * 100)}%</span>
-        <button className="btn sm" onClick={() => setZoomClamped(zoom + 0.1)} title="拡大">＋</button>
-        <button className="btn sm" onClick={fitZoom} title="会場全体が画面に収まる倍率にします">⤢ 全体</button>
-        <button className="btn sm" onClick={() => setZoom(1)} title="実寸比100%（1m=80px）">100%</button>
-        <span style={{ fontSize: 11, color: "var(--text3)" }}>背景ドラッグでスクロール／Ctrl（⌘）＋ホイールで拡大縮小</span>
-      </div>
+      {/* 🔍 ズームバー＋選択ツールバー（プレビューでは非表示＝普通の画像として見せる） */}
+      {!previewOnly && (
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11.5, color: "var(--text3)", fontWeight: 700 }}>🔍 表示</span>
+          <button className="btn sm" onClick={() => setZoomClamped(zoom - 0.1)} title="縮小">−</button>
+          <span style={{ fontSize: 12, fontWeight: 700, minWidth: 44, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{Math.round(zoom * 100)}%</span>
+          <button className="btn sm" onClick={() => setZoomClamped(zoom + 0.1)} title="拡大">＋</button>
+          <button className="btn sm" onClick={fitZoom} title="会場全体が画面に収まる倍率にします">⤢ 全体</button>
+          <button className="btn sm" onClick={() => setZoom(1)} title="実寸比100%（1m=80px）">100%</button>
+          <span style={{ fontSize: 11, color: "var(--text3)" }}>背景ドラッグでスクロール／Ctrl（⌘）＋ホイールで拡大縮小</span>
+        </div>
+      )}
 
       {/* 🪑 選択中の卓・オブジェクトの操作（卓の中のボタンを廃止してここに集約） */}
       {canEdit && selObj && (() => {
@@ -886,7 +888,8 @@ export function SeatingPanel({
         </div>
       </div>
 
-      {/* 未割当ゾーン＋一括追加 */}
+      {/* 未割当ゾーン＋一括追加（プレビューでは非表示＝普通の画像として見せる） */}
+      {!previewOnly && (
       <div style={{ marginTop: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
           未割当のゲスト <span className={`pill ${unassigned.length ? "amber" : "green"}`}>{unassigned.length}名</span>
@@ -949,6 +952,7 @@ export function SeatingPanel({
           </>
         )}
       </div>
+      )}
       </>}
     </>
   );

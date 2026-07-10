@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { ROLES } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "./logout-button";
-import { TopbarTitle } from "./topbar-title";
+import { Topbar } from "./topbar-title";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { MobileNav } from "@/components/mobile-nav";
 import { A2hsBanner } from "@/components/a2hs-banner";
@@ -154,11 +154,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             ⏳ プランナーの確認待ちです。確認が完了するまで、あと約<b>{graceHoursLeft}時間</b>ご利用いただけます（確認後は制限なくご利用いただけます。ご登録の情報は消えません）
           </div>
         )}
-        <header className="topbar">
-          <TopbarTitle couple={isCouple} dateText={today} />
-          <div className="grow" />
+        <Topbar couple={isCouple} dateText={today}>
           <NotificationsBell />
-        </header>
+        </Topbar>
         <div className="content">
           {/* お客様がブラウザで開いているときだけ「アプリとして追加」を案内（追加後はURLバーが消える） */}
           {isCouple && <A2hsBanner />}
