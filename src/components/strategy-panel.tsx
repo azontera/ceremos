@@ -1,5 +1,5 @@
 "use client";
-// 顧客攻略パネル（案件コックピット右ペイン）
+// 顧客攻略（📌案件タブ内・AIヒヤリングカードの下に表示）
 // AIヒヤリングの診断結果から「この顧客にどう売るか」を常時表示する。
 // ヒヤリング未実施のときは実施導線を出す。
 import Link from "next/link";
@@ -28,19 +28,17 @@ export function StrategyPanel({ caseId, isBridalCase, strategy }: {
 
   if (hidden) {
     return (
-      <aside className="strategy-panel strategy-panel-collapsed">
-        <button className="strategy-reopen" onClick={() => setHiddenPersist(false)} title="顧客攻略を表示">
-          🎯<span>顧客攻略</span>
-        </button>
-      </aside>
+      <button className="btn sm" style={{ marginBottom: 16 }} onClick={() => setHiddenPersist(false)}>
+        🎯 顧客攻略を表示
+      </button>
     );
   }
 
   return (
-    <aside className="strategy-panel">
-      <div className="step-nav-title" style={{ display: "flex", alignItems: "center" }}>
-        顧客攻略
-        <button className="step-close" style={{ position: "static", marginLeft: "auto" }} onClick={() => setHiddenPersist(true)} title="閉じる">✕</button>
+    <div style={{ marginBottom: 16 }}>
+      <div className="section-h" style={{ marginBottom: 8 }}>
+        <h2 style={{ fontSize: 15 }}>🎯 顧客攻略</h2>
+        <button className="btn sm" style={{ marginLeft: "auto" }} onClick={() => setHiddenPersist(true)} title="閉じる">✕ 閉じる</button>
       </div>
       {!strategy ? (
         <div className="card" style={{ padding: 14 }}>
@@ -52,60 +50,62 @@ export function StrategyPanel({ caseId, isBridalCase, strategy }: {
         </div>
       ) : (
         <>
-          {strategy.typeCard && (
-            <div className="card" style={{ padding: 14, marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: "var(--accent-text)", fontWeight: 700, letterSpacing: ".06em" }}>顧客タイプ</div>
-              <div style={{ fontSize: 14.5, fontWeight: 800, margin: "2px 0 6px" }}>{strategy.typeCard.title}</div>
-              <p style={{ fontSize: 12, color: "var(--text2)", margin: 0 }}>{strategy.typeCard.summary}</p>
-              {(strategy.persons ?? []).length > 0 && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                  {strategy.persons!.map((p, i) => (
-                    <span key={i} className="pill accent" title={p.mbtiName ?? ""}>
-                      {p.label} {p.mbti ?? ""}{p.sign ? `・${p.sign}` : ""}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {strategy.typeCard && strategy.typeCard.proposals.length > 0 && (
-            <div className="card" style={{ padding: 14, marginBottom: 10 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>💡 刺さる提案</div>
-              <ul className="strategy-list">{strategy.typeCard.proposals.map((t, i) => <li key={i}>{t}</li>)}</ul>
-              {strategy.typeCard.ng.length > 0 && (
-                <>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, margin: "10px 0 6px" }}>🚫 NG行動</div>
-                  <ul className="strategy-list ng">{strategy.typeCard.ng.map((t, i) => <li key={i}>{t}</li>)}</ul>
-                </>
-              )}
-            </div>
-          )}
-          {isBridalCase && strategy.compat && (
-            <div className="card" style={{ padding: 14, marginBottom: 10 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>💞 おふたりの相性 <span className="pill accent">{strategy.compat.score}点</span></div>
-              <div style={{ fontSize: 12, color: "var(--text2)" }}>
-                <div>意思決定の主導：<b>{strategy.compat.decisionMaker}</b></div>
-                {strategy.compat.friction && <div>もめやすい論点：{strategy.compat.friction}</div>}
+          <div className="strategy-grid">
+            {strategy.typeCard && (
+              <div className="card" style={{ padding: 14 }}>
+                <div style={{ fontSize: 11, color: "var(--accent-text)", fontWeight: 700, letterSpacing: ".06em" }}>顧客タイプ</div>
+                <div style={{ fontSize: 14.5, fontWeight: 800, margin: "2px 0 6px" }}>{strategy.typeCard.title}</div>
+                <p style={{ fontSize: 12, color: "var(--text2)", margin: 0 }}>{strategy.typeCard.summary}</p>
+                {(strategy.persons ?? []).length > 0 && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                    {strategy.persons!.map((p, i) => (
+                      <span key={i} className="pill accent" title={p.mbtiName ?? ""}>
+                        {p.label} {p.mbti ?? ""}{p.sign ? `・${p.sign}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-              {strategy.compat.tips.length > 0 && (
-                <ul className="strategy-list" style={{ marginTop: 6 }}>{strategy.compat.tips.map((t, i) => <li key={i}>{t}</li>)}</ul>
-              )}
-            </div>
-          )}
-          {(strategy.upsells ?? []).length > 0 && (
-            <div className="card" style={{ padding: 14, marginBottom: 10 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>📈 アップセル候補</div>
-              {strategy.upsells!.map((u, i) => (
-                <div key={i} style={{ padding: "6px 0", borderBottom: i < strategy.upsells!.length - 1 ? "1px solid var(--border)" : "none" }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700 }}>{u.name}{u.price ? <span style={{ float: "right" }}>¥{u.price.toLocaleString("ja-JP")}</span> : null}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--text2)" }}>{u.reason}</div>
+            )}
+            {strategy.typeCard && strategy.typeCard.proposals.length > 0 && (
+              <div className="card" style={{ padding: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>💡 刺さる提案</div>
+                <ul className="strategy-list">{strategy.typeCard.proposals.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                {strategy.typeCard.ng.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, margin: "10px 0 6px" }}>🚫 NG行動</div>
+                    <ul className="strategy-list ng">{strategy.typeCard.ng.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                  </>
+                )}
+              </div>
+            )}
+            {isBridalCase && strategy.compat && (
+              <div className="card" style={{ padding: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>💞 おふたりの相性 <span className="pill accent">{strategy.compat.score}点</span></div>
+                <div style={{ fontSize: 12, color: "var(--text2)" }}>
+                  <div>意思決定の主導：<b>{strategy.compat.decisionMaker}</b></div>
+                  {strategy.compat.friction && <div>もめやすい論点：{strategy.compat.friction}</div>}
                 </div>
-              ))}
-            </div>
-          )}
-          <Link className="btn sm" href={`/cases/${caseId}/hearing`} style={{ width: "100%", justifyContent: "center" }}>🔮 診断の詳細・再ヒヤリング</Link>
+                {strategy.compat.tips.length > 0 && (
+                  <ul className="strategy-list" style={{ marginTop: 6 }}>{strategy.compat.tips.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                )}
+              </div>
+            )}
+            {(strategy.upsells ?? []).length > 0 && (
+              <div className="card" style={{ padding: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>📈 アップセル候補</div>
+                {strategy.upsells!.map((u, i) => (
+                  <div key={i} style={{ padding: "6px 0", borderBottom: i < strategy.upsells!.length - 1 ? "1px solid var(--border)" : "none" }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700 }}>{u.name}{u.price ? <span style={{ float: "right" }}>¥{u.price.toLocaleString("ja-JP")}</span> : null}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--text2)" }}>{u.reason}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Link className="btn sm" href={`/cases/${caseId}/hearing`} style={{ marginTop: 10, display: "inline-flex" }}>🔮 診断の詳細・再ヒヤリング</Link>
         </>
       )}
-    </aside>
+    </div>
   );
 }

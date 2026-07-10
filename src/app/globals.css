@@ -573,14 +573,14 @@ a.list-row:hover{background:var(--surface2)}
   .owner-tags{grid-column:2;justify-content:flex-start}
 }
 
-/* ===== 案件コックピット（中央=作業エリアを最大幅に／右=顧客攻略。商談ステップは🪜進め方タブへ分離） ===== */
+/* ===== 案件詳細ページ（タブは全画面幅。商談ステップ・チャットもタブに分離） ===== */
 h1,h2{font-family:var(--serif);letter-spacing:.02em}
-.cockpit{display:flex;gap:18px;align-items:flex-start}
-.cockpit-main{flex:1;min-width:0}
-.cockpit-right{position:sticky;top:64px;max-height:calc(100vh - 80px);overflow-y:auto;padding-bottom:20px;flex:0 0 auto}
-@media (max-width:1279px){
-  .cockpit{display:block}
-  .cockpit-right{position:static;max-height:none;margin-bottom:14px}
+/* タブの新着バッジ（チャット等・新着があれば点滅で気づけるように） */
+.tabs a{position:relative}
+.tab-badge{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--red);animation:tab-badge-pulse 1.6s ease-in-out infinite}
+@keyframes tab-badge-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(193,75,75,.5)}
+  50%{box-shadow:0 0 0 5px rgba(193,75,75,0)}
 }
 /* 🪜 進め方タブ：ステップを横並びカードで一覧できるように（案件ページ内の最大幅を活用） */
 .steps-tab-wrap .step-nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
@@ -641,10 +641,5 @@ h1,h2{font-family:var(--serif);letter-spacing:.02em}
 .step-close{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:6px;
   color:var(--text3);font-size:12px;line-height:1;display:grid;place-items:center}
 .step-close:hover{background:var(--surface2);color:var(--text)}
-.strategy-panel{width:264px}
-.strategy-panel-collapsed{display:flex;justify-content:flex-end;width:auto}
-@media (max-width:1279px){ .strategy-panel{width:auto} }
-.strategy-reopen{writing-mode:vertical-rl;text-orientation:mixed;background:var(--surface);
-  border:1px solid var(--border);border-radius:10px;padding:12px 6px;font-size:11px;
-  color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:6px;letter-spacing:.05em}
-.strategy-reopen:hover{background:var(--surface2);color:var(--text)}
+/* 🎯 顧客攻略（📌案件タブ内・インライン表示） */
+.strategy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}

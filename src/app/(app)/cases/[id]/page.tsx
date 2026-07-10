@@ -12,7 +12,7 @@ import { SURVEY_30 } from "@/lib/survey";
 const SURVEY_LABEL: Record<string, string> = Object.fromEntries(
   SURVEY_30.map((sv) => [sv.key, sv.q.replace(/^\d+\.\s*/, "")]),
 );
-import { ChatDock } from "@/components/chat-dock";
+import { ChatPanel } from "@/components/chat-panel";
 import { MeetingForm } from "@/components/meeting-form";
 import { TaskList } from "@/components/task-list";
 import { QuotesPanel } from "@/components/quotes-panel";
@@ -40,7 +40,7 @@ import { prisma } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 // タブ構成（1タブ=1業務。縦に全部並べるLP型は廃止・?tab= で切替）
-// スタッフ: 案件（情報・ToDo）／進め方／打ち合わせ／みつもり（カタログ・発注・料理・請求）／席次／進行（楽曲）／リソース
+// スタッフ: 案件（情報・ToDo・ヒヤリング・攻略・失注）／進め方／打ち合わせ／みつもり／席次／進行／リソース／チャット
 const STAFF_TABS = [
   { key: "info", label: "📌 案件" },
   { key: "steps", label: "🪜 進め方" },
@@ -49,12 +49,14 @@ const STAFF_TABS = [
   { key: "seating", label: "🪑 席次" },
   { key: "rundown", label: "📋 進行" },
   { key: "resources", label: "🏛 リソース" },
+  { key: "chat", label: "💬 チャット" },
 ];
 const COUPLE_TABS = [
   { key: "quotes", label: "💰 お見積り" },
   { key: "catalog", label: "👗 えらぶ" },
   { key: "seating", label: "🪑 席次" },
   { key: "rundown", label: "📋 当日の流れ" },
+  { key: "chat", label: "💬 チャット" },
 ];
 // 旧アンカー・旧タブ名との互換（スマホ下部ナビ・過去リンクを壊さない）
 const TAB_ALIAS: Record<string, string> = {
@@ -91,12 +93,10 @@ export default async function CaseDetailPage({
 
   const c = await getCaseDetail(params.id);
   if (!c) notFound();
-  // 旧リンク互換：?tab=chat はチャットドックを自動で開く
-  const chatOpen = searchParams.tab === "chat";
   const isStaff = s.role !== "couple";
   // 表示タブの解決（couple はカタログを独立タブに・スタッフはみつもりへ集約）
   const tabDefs = isStaff ? STAFF_TABS : COUPLE_TABS;
-  const rawTab = searchParams.tab && searchParams.tab !== "chat" ? searchParams.tab : "";
+  const rawTab = searchParams.tab ?? "";
   const aliased = !isStaff && rawTab === "catalog" ? "catalog" : (TAB_ALIAS[rawTab] ?? rawTab);
   const tab = tabDefs.some((t) => t.key === aliased) ? aliased : (isStaff ? "info" : "quotes");
 
@@ -148,6 +148,10 @@ export default async function CaseDetailPage({
     isStaff ? prisma.menuItem.findMany({ where: { caseId: c.id }, orderBy: { sortOrder: "asc" } }) : Promise.resolve([]),
   ]);
   const followUpsCount = isStaff ? await prisma.followUp.count({ where: { caseId: c.id } }) : 0;
+  // チャットタブの未読バッジ（新着があれば動きで気づけるように）
+  const unreadChatCount = await prisma.chatMessage.count({
+    where: { caseId: c.id, NOT: { senderId: s.userId }, reads: { none: { userId: s.userId } } },
+  });
   const customerSurveys = customerMembers.map((m) => {
     let p: { furigana?: string; survey?: Record<string, string>; birthDate?: string; gender?: string; hasChildren?: string } = {};
     try { p = JSON.parse(m.user.profileJson ?? "{}"); } catch { /* ignore */ }
@@ -216,21 +220,15 @@ export default async function CaseDetailPage({
         {c.status === "tentative" && <span className="pill violet">仮予約</span>}
         <span className={`dday ${dd.cls}`}>{dd.text}</span>
         <span className="pill gray">{c.guestCount}名</span>
-        {isStaff && can(s.role, "cases", "edit") && (
-          <span style={{ marginLeft: "auto" }}>
-            <LostCaseButton caseId={c.id} isLost={c.status === "lost"} lostReason={c.lostReason} />
-          </span>
-        )}
       </div>
-
-      {/* 中央=作業エリアを最大幅に／右=顧客攻略パネル（折りたたみ時は自動で中央が広がる）。商談ステップは🪜進め方タブへ */}
-      <div className={isStaff ? "cockpit" : ""}>
-      <div className={isStaff ? "cockpit-main" : ""}>
 
       {/* タブバー（1タブ=1業務。お客様のスマホは下部ナビがあるためPCのみ表示） */}
       <div className={s.role === "couple" ? "tabs pc-only" : "tabs"}>
         {tabDefs.map((t2) => (
-          <Link key={t2.key} href={`/cases/${c.id}?tab=${t2.key}`} className={tab === t2.key ? "active" : ""}>{t2.label}</Link>
+          <Link key={t2.key} href={`/cases/${c.id}?tab=${t2.key}`} className={tab === t2.key ? "active" : ""}>
+            {t2.label}
+            {t2.key === "chat" && unreadChatCount > 0 && <span className="tab-badge" />}
+          </Link>
         ))}
       </div>
 
@@ -260,33 +258,6 @@ export default async function CaseDetailPage({
           </div>
         )}
       </div>
-
-      {/* 🔮 AIヒヤリング（診断型）ステータス */}
-      {isStaff && (
-        <div className="card" id="hearing" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-          <b style={{ fontSize: 13.5 }}>🔮 AIヒヤリング</b>
-          {strategy ? (
-            <>
-              <span className="pill green">実施済み</span>
-              <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
-                {strategy.typeCard?.title ?? ""} — 診断結果は右の顧客攻略パネルに表示中
-              </span>
-              <a className="btn sm" href={`/api/v1/cases/${c.id}/hearing/md`}>📄 AI生成依頼MD</a>
-              <AiPlanImport caseId={c.id} />
-              <a className="btn sm" href={`/print/${c.id}/fortune`} target="_blank">🖨 診断書（お客様用）</a>
-              <Link className="btn sm" href={`/cases/${c.id}/hearing`}>再ヒヤリング</Link>
-            </>
-          ) : (
-            <>
-              <span className="pill amber">未実施</span>
-              <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
-                診断型ヒヤリングを実施すると、顧客攻略・テンプレ生成・アップセル提案が使えます
-              </span>
-              <Link className="btn primary sm" href={`/cases/${c.id}/hearing`}>ヒヤリングを開始 →</Link>
-            </>
-          )}
-        </div>
-      )}
 
       {/* ===== 📝 打ち合わせタブ ===== */}
       {isStaff && tab === "meetings" && (<>
@@ -325,8 +296,42 @@ export default async function CaseDetailPage({
         </div>
       </>)}
 
-      {/* ===== 📌 案件タブ（基本情報・ToDo・アンケート・リソース） ===== */}
+      {/* ===== 📌 案件タブ（基本情報・ToDo・ヒヤリング・顧客攻略・失注・アンケート） ===== */}
       {isStaff && tab === "info" && (<>
+      {can(s.role, "cases", "edit") && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <LostCaseButton caseId={c.id} isLost={c.status === "lost"} lostReason={c.lostReason} />
+        </div>
+      )}
+
+      {/* 🔮 AIヒヤリング（診断型）ステータス */}
+      <div className="card" id="hearing" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+        <b style={{ fontSize: 13.5 }}>🔮 AIヒヤリング</b>
+        {strategy ? (
+          <>
+            <span className="pill green">実施済み</span>
+            <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
+              {strategy.typeCard?.title ?? ""} — 診断結果は下の顧客攻略に表示中
+            </span>
+            <a className="btn sm" href={`/api/v1/cases/${c.id}/hearing/md`}>📄 AI生成依頼MD</a>
+            <AiPlanImport caseId={c.id} />
+            <a className="btn sm" href={`/print/${c.id}/fortune`} target="_blank">🖨 診断書（お客様用）</a>
+            <Link className="btn sm" href={`/cases/${c.id}/hearing`}>再ヒヤリング</Link>
+          </>
+        ) : (
+          <>
+            <span className="pill amber">未実施</span>
+            <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
+              診断型ヒヤリングを実施すると、顧客攻略・テンプレ生成・アップセル提案が使えます
+            </span>
+            <Link className="btn primary sm" href={`/cases/${c.id}/hearing`}>ヒヤリングを開始 →</Link>
+          </>
+        )}
+      </div>
+
+      {/* 🎯 顧客攻略（AIヒヤリングの下） */}
+      <StrategyPanel caseId={c.id} isBridalCase={isBridal(c.caseType)} strategy={strategy} />
+
       <div className="grid cols-2">
       <CaseInfoCard
         caseId={c.id}
@@ -444,6 +449,16 @@ export default async function CaseDetailPage({
         );
       })()}
 
+      {/* ===== 💬 チャットタブ ===== */}
+      {tab === "chat" && (
+        <>
+          <div className="section-h"><h2>💬 案件チャット</h2>
+            <span style={{ fontSize: 11.5, color: "var(--text3)" }}>お客様・業者・スタッフ共通</span>
+          </div>
+          <ChatPanel caseId={c.id} meId={s.userId} height="min(70vh, 640px)" />
+        </>
+      )}
+
       {/* ===== 🪜 進め方タブ（商談ステップ・トーク・チェック） ===== */}
       {isStaff && tab === "steps" && salesSteps && (<>
       <div className="section-h"><h2>🪜 進め方</h2>
@@ -482,7 +497,7 @@ export default async function CaseDetailPage({
               </div>
             ))}
             <p style={{ fontSize: 11, color: "var(--text3)", margin: "8px 0 0" }}>
-              ご不明な点は右下の💬チャットからお気軽にご相談ください。
+              ご不明な点は💬チャットタブからお気軽にご相談ください。
             </p>
           </div>
         </div>
@@ -610,17 +625,6 @@ export default async function CaseDetailPage({
       />
 
       </>)}
-
-      </div>{/* /cockpit-main */}
-      {isStaff && (
-        <div className="cockpit-right">
-          <StrategyPanel caseId={c.id} isBridalCase={isBridal(c.caseType)} strategy={strategy} />
-        </div>
-      )}
-      </div>{/* /cockpit */}
-
-      {/* チャットドック：右下に常設 */}
-      <ChatDock caseId={c.id} meId={s.userId} initialOpen={chatOpen} />
     </>
   );
 }
