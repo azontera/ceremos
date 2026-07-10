@@ -90,7 +90,7 @@ const WEDDING_STEPS: SalesStepDef[] = [
     checks: ["席次確定（アレルギー最終確認）", "進行表・MC台本確定", "楽曲・音源確定", "発注すべて確定"],
   },
   {
-    key: "day", label: "当日", emoji: "💒", anchor: "info",
+    key: "day", label: "当日", emoji: "💒", anchor: "resources",
     goal: "当日運営（進行・音響・映像）をライブ画面で回す",
     talkPoints: ["開始前にスタッフ全員で進行表の「役割」列を読み合わせ"],
     checks: ["当日運営画面の起動確認", "音源・映像の再生テスト"],
@@ -147,7 +147,7 @@ const BANQUET_STEPS: SalesStepDef[] = [
     checks: ["最終人数の確定", "進行表・司会台本確定", "料理・ドリンク確定"],
   },
   {
-    key: "day", label: "当日", emoji: "🥂", anchor: "info",
+    key: "day", label: "当日", emoji: "🥂", anchor: "resources",
     goal: "当日運営をライブ画面で回す",
     talkPoints: ["主催者側の窓口担当と開始前に最終挨拶"],
     checks: ["当日運営画面の起動確認", "音源・映像の再生テスト"],

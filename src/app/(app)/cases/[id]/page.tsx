@@ -40,7 +40,7 @@ import { prisma } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 // タブ構成（1タブ=1業務。縦に全部並べるLP型は廃止・?tab= で切替）
-// スタッフ: 案件（情報・ToDo・リソース）／打ち合わせ／みつもり（カタログ・発注・料理・請求）／席次／進行（楽曲）
+// スタッフ: 案件（情報・ToDo）／進め方／打ち合わせ／みつもり（カタログ・発注・料理・請求）／席次／進行（楽曲）／リソース
 const STAFF_TABS = [
   { key: "info", label: "📌 案件" },
   { key: "steps", label: "🪜 進め方" },
@@ -48,6 +48,7 @@ const STAFF_TABS = [
   { key: "quotes", label: "💰 みつもり" },
   { key: "seating", label: "🪑 席次" },
   { key: "rundown", label: "📋 進行" },
+  { key: "resources", label: "🏛 リソース" },
 ];
 const COUPLE_TABS = [
   { key: "quotes", label: "💰 お見積り" },
@@ -58,7 +59,7 @@ const COUPLE_TABS = [
 // 旧アンカー・旧タブ名との互換（スマホ下部ナビ・過去リンクを壊さない）
 const TAB_ALIAS: Record<string, string> = {
   catalog: "quotes", orders: "quotes", meals: "quotes", billing: "quotes",
-  resources: "info", songs: "rundown", after: "info",
+  songs: "rundown", after: "info",
 };
 
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
@@ -233,35 +234,29 @@ export default async function CaseDetailPage({
         ))}
       </div>
 
-      {/* ヒーロー：カウントダウン・進捗・クイック操作 */}
-      <div className="card" style={{ padding: "18px 22px", marginBottom: 16, display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-        <div className={`dday-big ${dd.cls}`}>
-          {ddays > 0 ? <><small>{meta.day}まで</small>あと{ddays}日</> : ddays === 0 ? <>本日<small>{meta.day}当日</small></> : <>終了<small>実施済み</small></>}
-        </div>
-        <div style={{ flex: 1, minWidth: 230 }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>
-            {d(c.weddingDate)} {timeRange}
-            {c.caseType === "wedding" && c.chapelVenue ? `${c.chapelVenue.name} → ${venueName}` : venueName}
-          </div>
-          {ddays >= 0 && (
-            <div className="cc-progress" style={{ maxWidth: 380 }}>
-              <div className="progress"><span style={{ width: `${progress.percent}%` }} /></div>
-              <span className="cc-pct">{progress.percent}%</span>
-            </div>
-          )}
-          <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 6 }}>
+      {/* ヒーロー：スリムな1行バー（日数は上のタイトル行のピルで表示済みのため、ここでは重複させない） */}
+      <div className="card hero-slim">
+        <div className="hero-slim-main">
+          <b>{d(c.weddingDate)} {timeRange} {c.caseType === "wedding" && c.chapelVenue ? `${c.chapelVenue.name} → ${venueName}` : venueName}</b>
+          <span>
             {nextMeeting
               ? <>次回打ち合わせ：{nextMeeting.toLocaleString("ja-JP", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" })}</>
               : ddays >= 0 ? "次回打ち合わせ：未設定" : `実施日：${d(c.weddingDate)}`}
-          </div>
+          </span>
         </div>
+        {ddays >= 0 && (
+          <div className="cc-progress hero-slim-progress">
+            <div className="progress"><span style={{ width: `${progress.percent}%` }} /></div>
+            <span className="cc-pct">{progress.percent}%</span>
+          </div>
+        )}
         {isStaff && (
           <div className="quick-actions">
-            <Link className="btn" href={`/cases/${c.id}?tab=chat`}>💬 チャット</Link>
-            <Link className="btn" href={`/cases/${c.id}?tab=meetings`}>📝 打ち合わせ</Link>
-            <Link className="btn" href={`/cases/${c.id}?tab=rundown`}>📋 進行表</Link>
-            {ddays >= 0 && ddays <= 1 && <a className="btn primary" href={`/live/${c.id}`}>▶ 当日運営</a>}
-            <a className="btn" href={`/print/${c.id}/quote`} target="_blank">🖨 見積書</a>
+            <Link className="btn sm" href={`/cases/${c.id}?tab=chat`}>💬 チャット</Link>
+            <Link className="btn sm" href={`/cases/${c.id}?tab=meetings`}>📝 打ち合わせ</Link>
+            <Link className="btn sm" href={`/cases/${c.id}?tab=rundown`}>📋 進行表</Link>
+            {ddays >= 0 && ddays <= 1 && <a className="btn sm primary" href={`/live/${c.id}`}>▶ 当日運営</a>}
+            <a className="btn sm" href={`/print/${c.id}/quote`} target="_blank">🖨 見積書</a>
           </div>
         )}
       </div>
@@ -418,12 +413,14 @@ export default async function CaseDetailPage({
         </div></div>
       )}
       </div>
-      {(() => {
-        // 🏛 リソース確認（案件タブ内）：施設・設備・スタッフ・お客様の進行を1日バーチャートで
+      </>)}
+
+      {/* ===== 🏛 リソースタブ（施設・設備・スタッフの1日タイムライン） ===== */}
+      {isStaff && tab === "resources" && (() => {
         const iso = `${c.weddingDate.getFullYear()}-${String(c.weddingDate.getMonth() + 1).padStart(2, "0")}-${String(c.weddingDate.getDate()).padStart(2, "0")}`;
         return (
           <>
-            <div className="section-h" id="resources" style={{ marginTop: 24, marginBottom: 8 }}>
+            <div className="section-h" style={{ marginBottom: 8 }}>
               <h2>🏛 リソース確認</h2>
               <span style={{ fontSize: 11.5, color: "var(--text3)" }}>施設・設備・スタッフ・お客様の進行を1本の時間軸で確認</span>
             </div>
@@ -446,7 +443,6 @@ export default async function CaseDetailPage({
           </>
         );
       })()}
-      </>)}
 
       {/* ===== 🪜 進め方タブ（商談ステップ・トーク・チェック） ===== */}
       {isStaff && tab === "steps" && salesSteps && (<>
