@@ -155,10 +155,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         )}
         <header className="topbar">
-          <div>
-            <TopbarTitle couple={isCouple} />
-            <div className="date">{today}</div>
-          </div>
+          <TopbarTitle couple={isCouple} dateText={today} />
           <div className="grow" />
           <NotificationsBell />
         </header>

@@ -569,11 +569,11 @@ export default async function CaseDetailPage({
         <CatalogPanel caseId={c.id} isCouple categories={quoteCategories} caseType={c.caseType} canAdd />
       </>)}
 
-      {/* ===== 🪑 席次タブ ===== */}
+      {/* ===== 🪑 席次タブ（プレビューのみ。編集は専用ページ /cases/[id]/seating で行う） ===== */}
       {tab === "seating" && (<>
       <div className="section-h" id="seating"><h2>🪑 席次表</h2></div>
       <SeatingPanel caseId={c.id} canEdit={can(s.role, "seating", "edit")} canHall={can(s.role, "cases", "edit")} guestCount={c.guestCount} relations={relationOptions}
-        lockSide={mySeatingSide} caseType={c.caseType} />
+        lockSide={mySeatingSide} caseType={c.caseType} previewOnly editHref={`/cases/${c.id}/seating`} />
       </>)}
 
       {/* ===== 📋 進行タブ（進行表・楽曲） ===== */}

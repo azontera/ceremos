@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { MobileSeating } from "./mobile-seating";
 import { t as term, isBridal } from "@/lib/terms";
 
@@ -18,16 +19,24 @@ const TABLE_SIZES: [number, string][] = [
 ];
 
 export function SeatingPanel({
-  caseId, canEdit: canEditProp, canHall, guestCount, relations, lockSide, caseType,
-}: { caseId: string; canEdit: boolean; canHall: boolean; guestCount: number; relations?: string[]; lockSide?: "groom" | "bride" | null; caseType?: string }) {
+  caseId, canEdit: canEditPropRaw, canHall, guestCount, relations, lockSide, caseType,
+  previewOnly, editHref, defaultEditMode,
+}: {
+  caseId: string; canEdit: boolean; canHall: boolean; guestCount: number; relations?: string[];
+  lockSide?: "groom" | "bride" | null; caseType?: string;
+  // previewOnly: 案件詳細タブに埋め込む読み取り専用プレビュー用（編集操作を一切出さず、editHrefへの導線だけ出す）
+  previewOnly?: boolean; editHref?: string; defaultEditMode?: boolean;
+}) {
   const RELATIONS = relations && relations.length > 0 ? relations : DEFAULT_RELATIONS;
   // 宴会・式典モードでは婚礼用語（新郎側/新婦側）を出さない（表示文字列のみ。side="groom"/"bride" のデータ値は不変）
   const bridal = isBridal(caseType);
   const sideLabel = (side: string) => (side === "bride" ? term("brideSide", caseType) : term("groomSide", caseType));
   const sideEmoji = (side: string) => (side === "bride" ? (bridal ? "👰" : "👤") : (bridal ? "🤵" : "🏢"));
+  const canEditProp = previewOnly ? false : canEditPropRaw;
   // ✏ 編集モード：「編集する」を押すまでレイアウトはロック（誤ドラッグ防止）。「抜ける」で閲覧に戻る
   // 以降の canEdit はすべて「編集権限あり かつ 編集モード中」を意味する
-  const [editMode, setEditMode] = useState(false);
+  // 専用編集ページ（defaultEditMode）から来たときはロック無しで即編集開始（案件タブ埋め込みのプレビューと役割を分離）
+  const [editMode, setEditMode] = useState(defaultEditMode ?? false);
   const canEdit = canEditProp && editMode;
   const [tables, setTables] = useState<Table[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -354,27 +363,33 @@ export function SeatingPanel({
           </span>
         )}
         <div style={{ flex: 1 }} />
-        {/* ✏ 編集モードの切り替え（誤操作防止：編集するを押すまでロック） */}
-        {canEditProp && !simpleMode && (
-          <button className={editMode ? "btn" : "btn primary"}
-            title={editMode ? "編集を終了して閲覧に戻ります" : "卓の移動・追加・サイズ変更などレイアウト編集を始めます"}
-            onClick={() => { setEditMode(!editMode); setSelObj(null); setSelected(null); setHallEdit(false); }}>
-            {editMode ? "✅ 編集を抜ける" : "✏ 編集する"}
-          </button>
+        {previewOnly ? (
+          editHref && <Link className="btn primary" href={editHref}>✏ 編集する →</Link>
+        ) : (
+          <>
+            {/* ✏ 編集モードの切り替え（誤操作防止：編集するを押すまでロック） */}
+            {canEditProp && !simpleMode && (
+              <button className={editMode ? "btn" : "btn primary"}
+                title={editMode ? "編集を終了して閲覧に戻ります" : "卓の移動・追加・サイズ変更などレイアウト編集を始めます"}
+                onClick={() => { setEditMode(!editMode); setSelObj(null); setSelected(null); setHallEdit(false); }}>
+                {editMode ? "✅ 編集を抜ける" : "✏ 編集する"}
+              </button>
+            )}
+            {/* レイアウト編集はPC・iPad専用（スマホ幅では常にかんたん入力。.pc-onlyが720px以下で非表示） */}
+            <button className="btn pc-only" onClick={() => setSimpleMode(!simpleMode)}
+              title="スマホ向けのリスト入力とPC向けのレイアウト表示を切り替えます">
+              {simpleMode ? "🖥 レイアウト表示" : "📱 かんたん入力"}
+            </button>
+          </>
         )}
-        {/* レイアウト編集はPC専用（スマホは常にかんたん入力） */}
-        <button className="btn pc-only" onClick={() => setSimpleMode(!simpleMode)}
-          title="スマホ向けのリスト入力とPC向けのレイアウト表示を切り替えます">
-          {simpleMode ? "🖥 レイアウト表示" : "📱 かんたん入力"}
-        </button>
         <a className="btn" href={`/print/${caseId}/seating`} target="_blank">🖨 席次表</a>
         <a className="btn" href={`/print/${caseId}/guests`} target="_blank">🖨 出席リスト</a>
       </div>
-      {/* 📱 かんたん入力（スマホ最適化）：名前を入力しながら卓・席をその場で指定 */}
-      {simpleMode && (
+      {/* 📱 かんたん入力（スマホ最適化）：名前を入力しながら卓・席をその場で指定。プレビューでは常にレイアウト表示 */}
+      {simpleMode && !previewOnly && (
         <MobileSeating caseId={caseId} canEdit={canEditProp} relations={RELATIONS} lockSide={lockSide} caseType={caseType} />
       )}
-      {!simpleMode && <>
+      {(!simpleMode || previewOnly) && <>
       {err && <div className="form-err" style={{ marginBottom: 10 }}>{err}</div>}
 
       {/* ツールバー（画面上部に固定＝スクロールしても追加ボタンが消えない） */}

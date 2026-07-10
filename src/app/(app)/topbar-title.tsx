@@ -20,9 +20,20 @@ const COUPLE_TITLES: [RegExp, string][] = [
   [/^\/me\/password/, "パスワード変更"],
 ];
 
-export function TopbarTitle({ couple = false }: { couple?: boolean }) {
+// 案件詳細（および進め方・ヒヤリング・席次編集などその配下ページ）は
+// ページ内に独自の大きな見出し（新郎新婦名など）を持つため、
+// トップバー側の汎用タイトル「案件詳細」＋日付は重複でしかない → 非表示にする
+const SUPPRESS_ON = [/^\/cases\/[^/]+/];
+
+export function TopbarTitle({ couple = false, dateText }: { couple?: boolean; dateText: string }) {
   const pathname = usePathname() ?? "";
+  if (SUPPRESS_ON.some((re) => re.test(pathname))) return null;
   const list = couple ? COUPLE_TITLES : TITLES;
   const title = list.find(([re]) => re.test(pathname))?.[1] ?? "ホーム";
-  return <h1>{title}</h1>;
+  return (
+    <div>
+      <h1>{title}</h1>
+      <div className="date">{dateText}</div>
+    </div>
+  );
 }
