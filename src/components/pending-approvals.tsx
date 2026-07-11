@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { SURVEY_30 } from "@/lib/survey";
+import { SURVEY_ALL } from "@/lib/survey";
 
 // 承認待ちのお客様（セルフ登録）— プランナー・支配人・管理者が承認して案件に紐付ける
 export type Profile = {
@@ -29,7 +29,7 @@ function graceLabel(createdAt: string, nowMs: number) {
   return { text: `仮利用中（あと約${Math.max(1, Math.ceil(remain / 3600000))}時間）`, cls: "amber" };
 }
 const SURVEY_LABEL: Record<string, string> = Object.fromEntries(
-  SURVEY_30.map((s) => [s.key, s.q.replace(/^\d+\.\s*/, "")]),
+  SURVEY_ALL.map((s) => [s.key, s.q.replace(/^\d+\.\s*/, "")]),
 );
 
 export function PendingApprovals({

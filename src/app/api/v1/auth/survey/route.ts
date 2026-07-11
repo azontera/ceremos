@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   try { p = JSON.parse(u.profileJson ?? "{}"); } catch { /* ignore */ }
   return NextResponse.json({
     survey: p.survey ?? {},
+    eventType: p.eventType === "party" ? "party" : "wedding", // 質問セット（ブライダル/宴会）の出し分けに使用
     // 生年月日は登録時の必須項目のためアンケートでは扱わない
     basics: {
       gender: p.gender ?? "", hasChildren: p.hasChildren ?? "",

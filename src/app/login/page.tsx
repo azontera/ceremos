@@ -79,8 +79,8 @@ function LoginInner() {
     setBusy(false);
   }
 
-  // 新規登録：登録後はそのまま自動ログインして利用開始できる。
-  // お客様は承認不要（プランナーが案件に紐づけることで実業務化）／業者はプランナー確認が10時間の猶予付きで必要
+  // 新規登録：お客様（ブライダル・宴会）はヒヤリングページへ直行（トークンで承認前でも回答できる）。
+  // 承認は別途プランナーが行う。クイック登録・業者登録はそのままログインを試す（承認待ちでも10時間は仮利用できる）
   async function submitSignup(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(""); setInfo("");
@@ -94,6 +94,7 @@ function LoginInner() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) { setErr(data.error ?? "登録に失敗しました"); setBusy(false); return; }
+    if (data.surveyToken && !quick) { window.location.href = `/survey?token=${data.surveyToken}`; return; }
     // 登録できたらそのままログイン（承認待ちでも10時間は仮利用できる）
     const r2 = await fetch("/api/v1/auth/login", {
       method: "POST",
@@ -229,7 +230,8 @@ function LoginInner() {
             )}
             {!quick && eventType !== "vendor" && (
               <p style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 10, marginBottom: 0, lineHeight: 1.9 }}>
-                ご登録後、すぐにご利用いただけます。担当プランナーが案件を作成すると、お見積りなど本格的なご利用が始まります。
+                ご登録後、簡単なヒヤリング（約10問・任意）にお答えいただきます。担当プランナーの確認完了後にご利用いただけます<br />
+                （確認完了まで10時間を超えると一時的にログインできなくなりますが、ご登録の情報は消えません）
               </p>
             )}
           </form>

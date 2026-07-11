@@ -2,7 +2,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SURVEY_30, GENDER_OPTS, CHILDREN_OPTS } from "@/lib/survey";
+import { WEDDING_SURVEY, BANQUET_SURVEY, GENDER_OPTS, CHILDREN_OPTS } from "@/lib/survey";
 
 export default function SurveyPage() {
   return <Suspense><SurveyInner /></Suspense>;
@@ -13,6 +13,7 @@ function SurveyInner() {
   const token = useSearchParams().get("token") ?? "";
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [basics, setBasics] = useState<Record<string, string>>({}); // 生年月日・性別・子供の有無（任意）
+  const [eventType, setEventType] = useState<"wedding" | "party">("wedding");
   const [loaded, setLoaded] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const [err, setErr] = useState("");
@@ -26,11 +27,14 @@ function SurveyInner() {
         const d = await r.json();
         setAnswers(d.survey ?? {});
         setBasics(d.basics ?? {});
+        setEventType(d.eventType === "party" ? "party" : "wedding");
       })
       .catch(() => setInvalid(true))
       .finally(() => setLoaded(true));
   }, [token]);
 
+  const bridal = eventType === "wedding";
+  const questions = bridal ? WEDDING_SURVEY : BANQUET_SURVEY;
   const answered = Object.values(answers).filter((v) => v?.trim()).length;
 
   async function save() {
@@ -63,7 +67,7 @@ function SurveyInner() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/ceremos-mark.svg" alt="CEREMOS" width={44} height={44} />
           <h1 style={{ letterSpacing: ".12em", color: "var(--accent-text)", fontSize: 20 }}>ヒヤリングシート</h1>
-          <p style={{ fontSize: 12.5 }}>すべて任意です。ご回答いただくとお打ち合わせ・お見積りがスムーズになります。<br />途中まででも保存できます（あとから変更OK）。</p>
+          <p style={{ fontSize: 12.5 }}>ご登録ありがとうございます。{bridal ? "お打ち合わせ・お見積り" : "ご相談・お見積り"}がスムーズになるよう、{questions.length}問だけお答えください。<br />すべて任意です。途中まででも保存できます（あとから変更OK）。担当プランナーが内容を確認し、追ってご連絡します。</p>
         </div>
 
         {/* 基本情報（任意） */}
@@ -77,8 +81,8 @@ function SurveyInner() {
                 onChange={(e) => setBasics((x) => ({ ...x, furigana: e.target.value }))} />
             </div>
             <div className="field" style={{ flex: 1, minWidth: 140, marginBottom: 0 }}>
-              <label>お相手のお名前</label>
-              <input className="form-input" value={basics.partnerName ?? ""} placeholder="山田 花子"
+              <label>{bridal ? "お相手のお名前" : "ご担当部署・役職"}</label>
+              <input className="form-input" value={basics.partnerName ?? ""} placeholder={bridal ? "山田 花子" : "例：総務部 部長"}
                 onChange={(e) => setBasics((x) => ({ ...x, partnerName: e.target.value }))} />
             </div>
           </div>
@@ -115,8 +119,7 @@ function SurveyInner() {
           </div>
         </div>
 
-        {/* 30問 */}
-        {SURVEY_30.map((item) => (
+        {questions.map((item) => (
           <div key={item.key} style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>{item.q}</div>
             {item.type === "select" ? (
@@ -141,7 +144,7 @@ function SurveyInner() {
           </div>
         )}
         <button className="btn primary" style={{ width: "100%", justifyContent: "center" }} disabled={busy} onClick={save}>
-          {busy ? "保存中…" : `保存する（${answered}/30問 回答済み）`}
+          {busy ? "保存中…" : `保存する（${answered}/${questions.length}問 回答済み）`}
         </button>
       </div>
     </div>

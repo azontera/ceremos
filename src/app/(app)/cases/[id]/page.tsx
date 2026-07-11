@@ -6,10 +6,10 @@ import { getCaseDetail } from "@/lib/queries";
 import { computeProgress, daysUntil, ddayLabel } from "@/lib/progress";
 import { typeMeta } from "@/lib/case-types";
 import { getMasterOptions } from "@/lib/masters";
-import { SURVEY_30 } from "@/lib/survey";
+import { SURVEY_ALL } from "@/lib/survey";
 
 const SURVEY_LABEL: Record<string, string> = Object.fromEntries(
-  SURVEY_30.map((sv) => [sv.key, sv.q.replace(/^\d+\.\s*/, "")]),
+  SURVEY_ALL.map((sv) => [sv.key, sv.q.replace(/^\d+\.\s*/, "")]),
 );
 import { ChatPanel } from "@/components/chat-panel";
 import { MeetingForm } from "@/components/meeting-form";

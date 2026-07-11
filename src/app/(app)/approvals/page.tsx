@@ -6,8 +6,7 @@ import { getNow } from "@/lib/clock";
 
 export const dynamic = "force-dynamic";
 
-// 承認待ちのお取引先（業者） — プランナー・支配人・管理者が対応（やることリストからも遷移）
-// ※ お客様は登録時に承認不要のため通常ここには出ない（管理画面から手動で未承認にした場合のみ表示）
+// 承認待ちのお客様 — プランナー・支配人・管理者が対応（やることリストからも遷移）
 export default async function ApprovalsPage() {
   const s = await getSession();
   if (!s) redirect("/login");
@@ -28,12 +27,12 @@ export default async function ApprovalsPage() {
   return (
     <>
       <div className="section-h">
-        <h2>✅ 承認待ち（お取引先）</h2>
+        <h2>✅ 承認待ち（お客様・お取引先）</h2>
         <span className={`pill ${pendingUsers.length ? "amber" : "green"}`}>{pendingUsers.length}件</span>
       </div>
       <p style={{ fontSize: 11.5, color: "var(--text3)", marginBottom: 12 }}>
-        業者のセルフ登録は承認前でも<b>登録から10時間</b>は仮利用できます（期限後は承認までログイン不可・情報は消えません）。
-        内容を確認し、承認、または否認（削除）を行ってください。
+        セルフ登録は承認前でも<b>登録から10時間</b>は仮利用できます（期限後は承認までログイン不可・情報は消えません）。
+        内容を確認し、承認・案件への紐付け、または否認（削除）を行ってください。
       </p>
       <PendingApprovals
         serverNowISO={(await getNow()).toISOString()}

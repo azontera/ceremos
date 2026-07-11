@@ -9,8 +9,8 @@ import { validatePassword } from "@/lib/password";
 import { createUserToken, verifyUserToken } from "@/lib/auth";
 
 // POST: 顧客セルフ登録（新郎新婦・宴会顧客共通 role=couple）
-// 通常登録：メール認証（設定でON/OFF）のみ。管理者承認は不要で即ログイン可
-//   → プランナーが新規案件画面でこのお客様を選んで案件に紐づけることで実業務が始まる
+// 通常：メール認証（設定でON/OFF）→ 管理者承認 の2段階。承認前でも10時間は仮利用でき、その間にヒヤリングに回答してもらう
+//   → プランナーが新規案件画面でこのお客様を選んで案件に紐づける（承認と紐付けは別タイミングでもOK）
 // クイック登録（quickトークン付き・24時間有効）：名前＋メール＋パスワードだけで即ログイン可
 //   → 承認不要・仮の案件を自動作成。本人確認（メール認証）や詳細情報はログイン後に追記
 export async function POST(req: NextRequest) {
@@ -137,37 +137,15 @@ export async function POST(req: NextRequest) {
         profileComplete: false,
         survey: {},
       }),
-      approved: true,        // お客様は承認不要で即ログイン可（プランナーが案件に紐づけて実業務が始まる）
+      approved: false,       // 管理者承認待ち（承認前でも10時間は仮利用可・その間にヒヤリングに回答してもらう）
       emailVerified: !needVerify,
       verifyToken,
     },
   });
-  // 登録直後にアンケート（任意）へ進める30日トークン
+  // 案件はここでは作らない：プランナーが新規案件画面でこのお客様を選んで作成・紐付けする
+  // 登録直後にヒヤリング（任意・約10問）へ進める30日トークン
   const surveyToken = await createUserToken(u.id, "survey", "30d");
   await audit(u.id, "signup", "user", u.id);
-
-  // 登録と同時に仮の案件カードを自動作成して紐づける（開催日未定＝半年後の仮日程・仮予約扱い）
-  // プランナーへの紐付け作業は不要：案件一覧に「仮予約」で並ぶので、担当プランナーが詳細を詰める
-  const provisionalDate = new Date();
-  provisionalDate.setDate(provisionalDate.getDate() + 180);
-  provisionalDate.setHours(type === "party" ? 18 : 11, type === "party" ? 0 : 30, 0, 0);
-  const provisionalEnd = new Date(provisionalDate);
-  provisionalEnd.setHours(type === "party" ? 21 : 15, 30, 0, 0);
-  const autoCase = await prisma.case.create({
-    data: {
-      groomName: String(name).trim(),
-      brideName: type === "wedding" ? (partnerName?.trim() || "（お相手 未定）") : "―",
-      weddingDate: provisionalDate,
-      endTime: provisionalEnd,
-      caseType: type,
-      status: "tentative",
-      email: normEmail,
-      phone: phone?.trim() || null,
-      address: address?.trim() || null,
-      members: { create: { userId: u.id, roleInCase: "couple" } },
-    },
-  });
-  await audit(u.id, "create", "case", autoCase.id, { auto: "signup" });
 
   if (needVerify) {
     const base = process.env.APP_URL ?? req.nextUrl.origin;
@@ -175,7 +153,7 @@ export async function POST(req: NextRequest) {
     const r = await sendMail(
       normEmail,
       "【CEREMOS】メールアドレスの確認",
-      `${u.name} 様\n\nCEREMOSへのご登録ありがとうございます。\n以下のURLをクリックしてメールアドレスの確認を完了してください。\n\n${url}\n\n確認が完了しましたら、そのままログインしてご利用いただけます。\n※ 心当たりのない場合はこのメールを破棄してください。`,
+      `${u.name} 様\n\nCEREMOSへのご登録ありがとうございます。\n以下のURLをクリックしてメールアドレスの確認を完了してください。\n\n${url}\n\n確認後、式場スタッフの承認をもってログイン可能になります。\n※ 心当たりのない場合はこのメールを破棄してください。`,
     );
     return NextResponse.json({
       ok: true,

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SURVEY_30 } from "@/lib/survey";
+import { SURVEY_ALL } from "@/lib/survey";
 
 // 顧客マスタ（独立ページ）— 一覧・検索・無効化・削除・アンケート閲覧
 type Profile = {
@@ -19,7 +19,7 @@ export type CustomerRow = {
 };
 const EVENT_TYPE_LABEL: Record<string, string> = { wedding: "ブライダル", party: "宴会", other: "その他" };
 const SURVEY_LABEL: Record<string, string> = Object.fromEntries(
-  SURVEY_30.map((s) => [s.key, s.q.replace(/^\d+\.\s*/, "")]),
+  SURVEY_ALL.map((s) => [s.key, s.q.replace(/^\d+\.\s*/, "")]),
 );
 
 export function CustomersAdmin({ customers, canDelete }: { customers: CustomerRow[]; canDelete: boolean }) {
