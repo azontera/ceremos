@@ -206,6 +206,9 @@ export function CatalogShowcase() {
   if (step === -1) {
     return (
       <div className="cshow">
+        {viewer && (
+          <a className="cs-back cs-back-hero" href={viewer.caseId ? `/cases/${viewer.caseId}` : "/dashboard"}>← アプリに戻る</a>
+        )}
         <section className="cs-hero">
           {petals.map((p, i) => (
             <span key={i} className="cs-petal" style={{ left: `${p.left}%`, width: p.size, height: p.size * 0.8, animationDuration: `${p.dur}s`, animationDelay: `${p.delay}s` }} />
@@ -230,6 +233,9 @@ export function CatalogShowcase() {
     <div className="cshow cs-wiz">
       {/* ===== ヘッダー（進行状況） ===== */}
       <header className="cs-top scrolled">
+        {viewer && (
+          <a className="cs-back" href={viewer.caseId ? `/cases/${viewer.caseId}` : "/dashboard"}>← アプリに戻る</a>
+        )}
         <div className="cs-brand" style={{ cursor: "pointer" }} onClick={() => setStep(-1)}>{venueName}</div>
         <nav className="cs-steps">
           {steps.map((s, i) => {

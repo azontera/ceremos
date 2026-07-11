@@ -32,6 +32,9 @@
 }
 .cs-top.scrolled { background: rgba(250,246,238,.92); color: var(--ink); backdrop-filter: blur(14px); box-shadow: 0 1px 0 var(--line); }
 .cs-brand { font-family: var(--serif); font-size: 17px; letter-spacing: .22em; font-weight: 600; white-space: nowrap; }
+.cs-back { font-size: 12px; letter-spacing: .04em; color: inherit; text-decoration: none; opacity: .8; white-space: nowrap; transition: opacity .2s; }
+.cs-back:hover { opacity: 1; }
+.cs-back-hero { position: fixed; top: 18px; left: 22px; z-index: 41; color: #f7f0e2; background: rgba(0,0,0,.28); padding: 7px 14px; border-radius: 999px; backdrop-filter: blur(6px); }
 .cs-nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin: 0 auto; }
 .cs-nav::-webkit-scrollbar { display: none; }
 .cs-nav a {
