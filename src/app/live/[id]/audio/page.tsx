@@ -20,10 +20,13 @@ export default async function AudioLivePage({ params }: { params: { id: string }
   });
   if (!c) redirect("/cases");
 
+  const titleName = c.brideName === "―"
+    ? c.groomName
+    : `${c.groomName.split(" ")[0]}家・${c.brideName.split(" ")[0]}家`;
   return (
     <AudioConsole
       caseId={c.id}
-      title={`${c.groomName.split(" ")[0]}家・${c.brideName.split(" ")[0]}家 再生プレイヤー`}
+      title={`${titleName} 再生プレイヤー`}
       sub={`${c.banquetVenue?.name ?? ""} ・ ${timeRangeLabel(c.weddingDate, c.endTime)}`}
     />
   );

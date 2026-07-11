@@ -164,7 +164,7 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
               ))}
             </div>
             {/* 🧭 新規プランづくりウィザード（まだ見積が無いとき：客が選ぶ→テンプレ一式で下書き作成） */}
-            {c.quotes.length === 0 && <CustomerWizard caseId={c.id} />}
+            {c.quotes.length === 0 && <CustomerWizard caseId={c.id} caseType={c.caseType} />}
           </div>
         );
       })}

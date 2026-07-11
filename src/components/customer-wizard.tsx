@@ -5,6 +5,7 @@
 // 内容の確定・調整は担当プランナーが行う（作成後の編集はテンプレと同期しない）。
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { isBridal } from "@/lib/terms";
 
 type Pack = {
   id: string; name: string; category: string; description: string;
@@ -17,14 +18,21 @@ const STYLES: [string, string, string][] = [
   ["wakon", "🎎", "和婚・神前式"], ["small", "👨‍👩‍👧", "少人数・会食"], ["casual", "🎈", "カジュアル"],
   ["formal", "🎩", "フォーマル"], ["party", "🥂", "パーティ"],
 ];
+// 宴会・式典・イベント案件用のスタイル選択肢（初期テンプレ15本のbanquetパックのwizard.stylesに対応）
+const BANQUET_STYLES: [string, string, string][] = [
+  ["ceremony", "🎗️", "式典・セレモニー"], ["formal", "🎩", "フォーマル"], ["casual", "🎈", "カジュアル"],
+  ["party", "🥂", "パーティ"], ["dinnershow", "🎤", "ディナーショー"], ["night", "🌙", "ナイト"],
+];
 const GUESTS: [string, string][] = [["20", "〜30名"], ["50", "30〜60名"], ["70", "60〜80名"], ["100", "80名以上"]];
 const BUDGETS: [string, string][] = [["150", "〜200万円"], ["300", "200〜350万円"], ["400", "350〜450万円"], ["500", "450万円以上"]];
 const SLOTS: [string, string, string][] = [["day", "☀️", "昼"], ["evening", "🌆", "夕方"], ["night", "🌙", "夜"]];
 
 const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 
-export function CustomerWizard({ caseId }: { caseId: string }) {
+export function CustomerWizard({ caseId, caseType }: { caseId: string; caseType?: string }) {
   const router = useRouter();
+  const bridal = isBridal(caseType);
+  const stylesList = bridal ? STYLES : BANQUET_STYLES;
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [style, setStyle] = useState("");
@@ -48,7 +56,9 @@ export function CustomerWizard({ caseId }: { caseId: string }) {
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) { setErr(data.error ?? "プランを読み込めませんでした"); return; }
-    setPacks(data.packs ?? []);
+    // 案件タイプに合わないプラン（ブライダル案件に宴会パック等）は候補から外す
+    const all: Pack[] = data.packs ?? [];
+    setPacks(all.filter((p) => !p.category || p.category === "other" || p.category === (bridal ? "bridal" : "banquet")));
     setStep(4);
   }
 
@@ -83,7 +93,7 @@ export function CustomerWizard({ caseId }: { caseId: string }) {
       <div className="card" style={{ padding: "16px 20px", marginTop: 14, border: "1.5px solid var(--accent)", display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 26 }}>🧭</div>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <b style={{ fontSize: 14 }}>おふたりのプランをつくりましょう</b>
+          <b style={{ fontSize: 14 }}>{bridal ? "おふたりのプランをつくりましょう" : "会のプランをつくりましょう"}</b>
           <div style={{ fontSize: 12, color: "var(--text3)", marginTop: 3 }}>
             4つの質問に答えるだけで、ぴったりのプラン案（お見積り・当日の流れ・お料理）をご用意します。約1分。
           </div>
@@ -127,7 +137,7 @@ export function CustomerWizard({ caseId }: { caseId: string }) {
       {step === 0 && (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Q1. どんなスタイルにしたいですか？</div>
-          <StepPills items={STYLES} value={style} onSelect={(v) => { setStyle(v); setStep(1); }} />
+          <StepPills items={stylesList} value={style} onSelect={(v) => { setStyle(v); setStep(1); }} />
         </>
       )}
       {step === 1 && (
@@ -152,7 +162,7 @@ export function CustomerWizard({ caseId }: { caseId: string }) {
       {step === 4 && packs && (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-            おふたりにおすすめのプラン{showAll ? "（すべて表示中）" : "（上位3つ）"}
+            {bridal ? "おふたりにおすすめのプラン" : "おすすめのプラン"}{showAll ? "（すべて表示中）" : "（上位3つ）"}
           </div>
           <div style={{ fontSize: 11.5, color: "var(--text3)", marginBottom: 10 }}>
             選ぶと「下書き」ができます。金額・内容はあとから担当プランナーと一緒に自由に調整できます。

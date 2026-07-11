@@ -5,6 +5,7 @@ import { can, canAccessCase, audit } from "@/lib/rbac";
 import { menuPresetForTemplate } from "@/lib/menu-presets";
 import { effectiveEnd } from "@/lib/case-time";
 import { applyRundownTemplateToCase } from "@/lib/rundown";
+import { isBridal } from "@/lib/terms";
 
 // POST: 新バージョン作成（items 付き）
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -101,16 +102,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // ③リソース：控室・厨房・機材の標準セットを挙式時間に合わせて自動登録（既にあれば触らない）
       const asgCount = await prisma.assignment.count({ where: { caseId: params.id } });
       if (asgCount === 0) {
-        const c3 = await prisma.case.findUnique({ where: { id: params.id }, select: { weddingDate: true, endTime: true } });
+        const c3 = await prisma.case.findUnique({ where: { id: params.id }, select: { weddingDate: true, endTime: true, caseType: true } });
         if (c3) {
+          const bridal = isBridal(c3.caseType);
           const start = c3.weddingDate;
           const end = effectiveEnd(c3.weddingDate, c3.endTime);
           const at = (base: Date, offsetMin: number) => new Date(base.getTime() + offsetMin * 60000);
           const waiting = await prisma.venue.findMany({ where: { type: "waiting" }, orderBy: { name: "asc" } });
           const kitchen = await prisma.venue.findFirst({ where: { type: "kitchen" } });
           const data: { kind: string; label: string; venueId?: string; startsAt: Date; endsAt: Date }[] = [];
-          if (waiting[0]) data.push({ kind: "waiting", label: "新郎新婦 控室", venueId: waiting[0].id, startsAt: at(start, -150), endsAt: at(end, 30) });
-          if (waiting[1]) data.push({ kind: "waiting", label: "親族控室", venueId: waiting[1].id, startsAt: at(start, -90), endsAt: end });
+          if (waiting[0]) data.push({ kind: "waiting", label: bridal ? "新郎新婦 控室" : "主催者 控室", venueId: waiting[0].id, startsAt: at(start, -150), endsAt: at(end, 30) });
+          if (waiting[1]) data.push({ kind: "waiting", label: bridal ? "親族控室" : "スタッフ控室", venueId: waiting[1].id, startsAt: at(start, -90), endsAt: end });
           if (kitchen) data.push({ kind: "kitchen", label: "コース仕込み・提供", venueId: kitchen.id, startsAt: at(start, -210), endsAt: at(end, -30) });
           // スタッフの動き（音響照明・キャプテン・司会・サービス）→ バーチャートの👥行に出る
           data.push({ kind: "staff", label: "キャプテン（現場統括）", startsAt: at(start, -120), endsAt: at(end, 60) });
