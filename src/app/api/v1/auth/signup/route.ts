@@ -146,6 +146,29 @@ export async function POST(req: NextRequest) {
   const surveyToken = await createUserToken(u.id, "survey", "30d");
   await audit(u.id, "signup", "user", u.id);
 
+  // 登録と同時に仮の案件カードを自動作成して紐づける（開催日未定＝半年後の仮日程・仮予約扱い）
+  // プランナーへの紐付け作業は不要：案件一覧に「仮予約」で並ぶので、担当プランナーが詳細を詰める
+  const provisionalDate = new Date();
+  provisionalDate.setDate(provisionalDate.getDate() + 180);
+  provisionalDate.setHours(type === "party" ? 18 : 11, type === "party" ? 0 : 30, 0, 0);
+  const provisionalEnd = new Date(provisionalDate);
+  provisionalEnd.setHours(type === "party" ? 21 : 15, 30, 0, 0);
+  const autoCase = await prisma.case.create({
+    data: {
+      groomName: String(name).trim(),
+      brideName: type === "wedding" ? (partnerName?.trim() || "（お相手 未定）") : "―",
+      weddingDate: provisionalDate,
+      endTime: provisionalEnd,
+      caseType: type,
+      status: "tentative",
+      email: normEmail,
+      phone: phone?.trim() || null,
+      address: address?.trim() || null,
+      members: { create: { userId: u.id, roleInCase: "couple" } },
+    },
+  });
+  await audit(u.id, "create", "case", autoCase.id, { auto: "signup" });
+
   if (needVerify) {
     const base = process.env.APP_URL ?? req.nextUrl.origin;
     const url = `${base}/api/v1/auth/verify?token=${verifyToken}`;
