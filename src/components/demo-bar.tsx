@@ -10,7 +10,7 @@ export function DemoBar() {
   const [now, setNow] = useState<string>("");
   const [offsetMs, setOffsetMs] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [accounts, setAccounts] = useState<{ key: string; label: string; userId?: string; role?: string; vendorCategory?: string }[]>([]);
+  const [accounts, setAccounts] = useState<{ key: string; label: string; userId?: string; role?: string; vendorCategory?: string; seq?: number }[]>([]);
   const [open, setOpen] = useState(false);
 
   async function load() {
@@ -36,7 +36,7 @@ export function DemoBar() {
     setBusy(false);
   }
 
-  async function switchTo(a: { userId?: string; role?: string; vendorCategory?: string }) {
+  async function switchTo(a: { userId?: string; role?: string; vendorCategory?: string; seq?: number }) {
     setBusy(true);
     const res = await fetch("/api/v1/auth/demo-login", {
       method: "POST",

@@ -34,7 +34,7 @@ function LoginInner() {
   const [logoUrl, setLogoUrl] = useState("");
   const [venueName, setVenueName] = useState("");
   // 🧪 検証用ワンクリックログイン（DEMO_MODE=1 のときだけサーバーが一覧を返す）
-  const [demoAccounts, setDemoAccounts] = useState<{ key: string; label: string; userId?: string; role?: string; vendorCategory?: string }[]>([]);
+  const [demoAccounts, setDemoAccounts] = useState<{ key: string; label: string; userId?: string; role?: string; vendorCategory?: string; seq?: number }[]>([]);
   const router = useRouter();
   const sp = useSearchParams();
   const verify = sp.get("verify");
@@ -51,7 +51,7 @@ function LoginInner() {
   }, []);
 
   // 🧪 検証：クリックだけでログイン
-  async function demoLogin(a: { userId?: string; role?: string; vendorCategory?: string }) {
+  async function demoLogin(a: { userId?: string; role?: string; vendorCategory?: string; seq?: number }) {
     setBusy(true); setErr("");
     const res = await fetch("/api/v1/auth/demo-login", {
       method: "POST",
