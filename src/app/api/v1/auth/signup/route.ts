@@ -9,7 +9,8 @@ import { validatePassword } from "@/lib/password";
 import { createUserToken, verifyUserToken } from "@/lib/auth";
 
 // POST: 顧客セルフ登録（新郎新婦・宴会顧客共通 role=couple）
-// 通常：メール認証（設定でON/OFF）→ 管理者承認 の2段階
+// 通常登録：メール認証（設定でON/OFF）のみ。管理者承認は不要で即ログイン可
+//   → プランナーが新規案件画面でこのお客様を選んで案件に紐づけることで実業務が始まる
 // クイック登録（quickトークン付き・24時間有効）：名前＋メール＋パスワードだけで即ログイン可
 //   → 承認不要・仮の案件を自動作成。本人確認（メール認証）や詳細情報はログイン後に追記
 export async function POST(req: NextRequest) {
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
         profileComplete: false,
         survey: {},
       }),
-      approved: false,       // 管理者承認待ち
+      approved: true,        // お客様は承認不要で即ログイン可（プランナーが案件に紐づけて実業務が始まる）
       emailVerified: !needVerify,
       verifyToken,
     },
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
     const r = await sendMail(
       normEmail,
       "【CEREMOS】メールアドレスの確認",
-      `${u.name} 様\n\nCEREMOSへのご登録ありがとうございます。\n以下のURLをクリックしてメールアドレスの確認を完了してください。\n\n${url}\n\n確認後、式場スタッフの承認をもってログイン可能になります。\n※ 心当たりのない場合はこのメールを破棄してください。`,
+      `${u.name} 様\n\nCEREMOSへのご登録ありがとうございます。\n以下のURLをクリックしてメールアドレスの確認を完了してください。\n\n${url}\n\n確認が完了しましたら、そのままログインしてご利用いただけます。\n※ 心当たりのない場合はこのメールを破棄してください。`,
     );
     return NextResponse.json({
       ok: true,

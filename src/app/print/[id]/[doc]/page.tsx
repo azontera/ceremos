@@ -10,6 +10,7 @@ import { PrintBrand } from "@/components/print-brand";
 import { mbtiTrivia, signTrivia, elementsTrivia, enMusubi, compatGrade } from "@/lib/fortune-print";
 import type { PersonResult } from "@/lib/hearing";
 import type { StrategyData } from "@/components/strategy-panel";
+import { t } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
 
@@ -698,13 +699,13 @@ export default async function PrintPage({
       {doc === "guests" && (
         <>
           <p style={{ marginTop: 14, fontSize: 12 }}>
-            ご出席 {seatGuests.length}名（新郎側 {seatGuests.filter((g) => g.side === "groom").length}名・新婦側 {seatGuests.filter((g) => g.side === "bride").length}名）
+            ご出席 {seatGuests.length}名（{t("groomSide", c.caseType)} {seatGuests.filter((g) => g.side === "groom").length}名・{t("brideSide", c.caseType)} {seatGuests.filter((g) => g.side === "bride").length}名）
             　※ 受付でチェック、クローク欄はお預かり札番号の記入にご利用ください
           </p>
           {(["groom", "bride"] as const).map((side) => (
             <div key={side}>
               <h2 style={{ fontSize: 14, marginTop: 18, color: side === "groom" ? "#4a6fa5" : "#a4586b" }}>
-                {side === "groom" ? "■ 新郎側ゲスト" : "■ 新婦側ゲスト"}
+                {side === "groom" ? `■ ${t("groomSide", c.caseType)}ゲスト` : `■ ${t("brideSide", c.caseType)}ゲスト`}
               </h2>
               <table className="ptbl">
                 <thead>
@@ -805,7 +806,7 @@ export default async function PrintPage({
       {doc === "seating" && (
         <>
           <p style={{ marginTop: 14, fontSize: 12 }}>
-            ご出席 {seatGuests.length}名（新郎側 {seatGuests.filter((g) => g.side === "groom").length}名・新婦側 {seatGuests.filter((g) => g.side === "bride").length}名）
+            ご出席 {seatGuests.length}名（{t("groomSide", c.caseType)} {seatGuests.filter((g) => g.side === "groom").length}名・{t("brideSide", c.caseType)} {seatGuests.filter((g) => g.side === "bride").length}名）
           </p>
           {/* 会場レイアウト図（画面の見た目のまま縮小印刷） */}
           {(() => {

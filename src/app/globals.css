@@ -137,6 +137,29 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .tabs a,.tabs button{padding:6px 14px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--text2)}
 .tabs a.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 
+/* タブバー：タブ本体＋案件名・日取・進捗の要約（案件詳細ページ上部） */
+.tabs-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;margin-bottom:16px}
+.tabs-bar .tabs{margin-bottom:0}
+.tabs-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--text2)}
+.tabs-meta-name{font-size:15px;font-weight:800;letter-spacing:-0.01em;color:var(--text)}
+.tabs-meta-date{color:var(--text3)}
+.tabs-meta-progress{display:flex;align-items:center;gap:6px;min-width:96px}
+
+/* 進め方アドバイス（各タブにさりげなく表示・✕で閉じられる） */
+.advice-card{position:relative;padding:12px 16px;margin-bottom:14px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius)}
+.advice-head{display:flex;align-items:center;gap:8px;margin-bottom:4px;padding-right:22px}
+.advice-head b{font-size:13px}
+.advice-goal{font-size:12.5px;color:var(--text2);margin-bottom:3px}
+.advice-talk{font-size:12px;color:var(--text2);margin-bottom:6px}
+.advice-more{font-size:11px;color:var(--accent-text);font-weight:600}
+.advice-close{position:absolute;top:8px;right:10px;width:20px;height:20px;border-radius:6px;font-size:11px;color:var(--text3);display:flex;align-items:center;justify-content:center}
+.advice-close:hover{background:var(--surface);color:var(--text)}
+.advice-detail{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.advice-sec{margin-bottom:6px;font-size:11.5px}
+.advice-sec b{font-size:10.5px;color:var(--text3);letter-spacing:.05em}
+.advice-sec ul{margin:2px 0 0;padding-left:16px;color:var(--text2)}
+.advice-sec li{margin-bottom:3px;line-height:1.5}
+
 /* セクションの要約カード＋モーダル（案件詳細ページ：全展開ではなく開閉式にする） */
 .section-summary-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:20px 0}
 .section-summary-card{display:flex;flex-direction:column;gap:10px;padding:16px 18px;position:relative;cursor:pointer;transition:box-shadow .15s,border-color .15s}
@@ -584,32 +607,6 @@ h1,h2{font-family:var(--serif);letter-spacing:.02em}
   0%,100%{box-shadow:0 0 0 0 rgba(193,75,75,.5)}
   50%{box-shadow:0 0 0 5px rgba(193,75,75,0)}
 }
-/* 🪜 進め方タブ：ステップを横並びカードで一覧できるように（案件ページ内の最大幅を活用） */
-.steps-tab-wrap .step-nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.steps-tab-wrap .step-nav-title{grid-column:1/-1}
-.steps-tab-wrap .step{border-left:none;margin-left:0;padding:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.steps-tab-wrap .step.done{border-color:var(--accent)}
-.steps-tab-wrap .step-dot{position:static;margin-right:2px}
-.steps-tab-wrap .step-head{padding:12px 14px}
-.steps-tab-wrap .step-body{padding:0 14px 14px}
-.step-nav-title{font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.12em;padding:2px 4px 8px;font-family:var(--serif)}
-.step-nav .step{border-left:2px solid var(--border);margin-left:11px;padding:0 0 4px 14px;position:relative}
-.step-nav .step.done{border-left-color:var(--accent)}
-.step-nav .step:last-child{padding-bottom:0}
-.step-head{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 6px;border-radius:8px;font-size:12.5px;color:var(--text2)}
-.step-head:hover{background:var(--surface2)}
-.step-dot{position:absolute;left:-12px;width:22px;height:22px;border-radius:50%;background:var(--surface);border:2px solid var(--border);
-  display:grid;place-items:center;font-size:10.5px;font-weight:700;color:var(--text3)}
-.step.done .step-dot{background:var(--accent);border-color:var(--accent);color:#fff}
-.step.current .step-dot{border-color:var(--accent);color:var(--accent-text);box-shadow:0 0 0 4px var(--accent-soft)}
-.step.current .step-head{font-weight:700;color:var(--text)}
-.step-body{padding:4px 6px 10px;font-size:11.5px}
-.step-goal{font-weight:600;color:var(--text);margin-bottom:2px}
-.step-hint{color:var(--accent-text);font-size:11px;margin-bottom:6px}
-.step-sec{margin-bottom:6px}
-.step-sec b{font-size:10.5px;color:var(--text3);letter-spacing:.05em}
-.step-sec ul{margin:2px 0 0;padding-left:16px;color:var(--text2)}
-.step-sec li{margin-bottom:3px;line-height:1.5}
 .strategy-list{margin:0;padding-left:16px;font-size:12px;color:var(--text2)}
 .strategy-list li{margin-bottom:4px;line-height:1.55}
 .strategy-list.ng li{color:var(--red)}
@@ -638,10 +635,5 @@ h1,h2{font-family:var(--serif);letter-spacing:.02em}
 .hearing-back:hover{color:var(--text)}
 .hearing-reward{font-size:44px;margin-bottom:8px}
 
-/* ステップ詳細・顧客攻略パネルの閉じるボタン */
-.step-body{position:relative}
-.step-close{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:6px;
-  color:var(--text3);font-size:12px;line-height:1;display:grid;place-items:center}
-.step-close:hover{background:var(--surface2);color:var(--text)}
 /* 🎯 顧客攻略（📌案件タブ内・インライン表示） */
 .strategy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}

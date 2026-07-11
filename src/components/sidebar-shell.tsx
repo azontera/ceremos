@@ -1,15 +1,16 @@
 "use client";
 // グローバルサイドバーの折りたたみ（中央の作業エリアを広く使いたいというリクエスト対応）
 // アイコンのみの縮小表示に切り替え、状態はブラウザに保存して次回訪問でも維持する。
+// デフォルトは自動で縮小（初回訪問時も含む）。ユーザーが手動で広げた場合はその選択を記憶する。
 import { useEffect, useState } from "react";
 
 export function SidebarShell({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
-  useEffect(() => { setCollapsed(localStorage.getItem("sidebarCollapsed") === "1"); }, []);
+  const [collapsed, setCollapsed] = useState(true);
+  useEffect(() => { setCollapsed(localStorage.getItem("sidebarCollapsed") !== "0"); }, []);
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
-    if (next) localStorage.setItem("sidebarCollapsed", "1"); else localStorage.removeItem("sidebarCollapsed");
+    localStorage.setItem("sidebarCollapsed", next ? "1" : "0");
   };
   // 幅はJSの状態から直接インラインで指定する（CSSクラスだけだとflex-basis:autoの解決順序に依存し、
   // 環境によっては縮小が効かないことがあったため、確実に効く方式に固定）

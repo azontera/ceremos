@@ -28,7 +28,7 @@ import { BillingPanel } from "@/components/billing-panel";
 import { CustomerAccountPanel } from "@/components/customer-account-panel";
 import { CaseInfoCard } from "@/components/case-info-card";
 import { DayVenueChart } from "@/components/day-venue-chart";
-import { SalesStepNav } from "@/components/sales-step-nav";
+import { TabAdvice } from "@/components/tab-advice";
 import { LostCaseButton } from "@/components/lost-case-button";
 import { AiPlanImport } from "@/components/ai-plan-import";
 import { StrategyPanel, type StrategyData } from "@/components/strategy-panel";
@@ -40,14 +40,15 @@ import { prisma } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 // タブ構成（1タブ=1業務。縦に全部並べるLP型は廃止・?tab= で切替）
-// スタッフ: 案件（情報・ToDo・ヒヤリング・攻略・失注）／進め方／打ち合わせ／みつもり／席次／進行／リソース／チャット
+// スタッフ: 案件（情報・ToDo・ヒヤリング・攻略・失注）／打ち合わせ／見積／席次／進行／選曲／リソース／チャット
+// 「進め方」は独立タブではなく、関連する各タブの中にさりげないアドバイス（TabAdvice）として表示する
 const STAFF_TABS = [
   { key: "info", label: "📌 案件" },
-  { key: "steps", label: "🪜 進め方" },
   { key: "meetings", label: "📝 打ち合わせ" },
-  { key: "quotes", label: "💰 みつもり" },
+  { key: "quotes", label: "💰 見積" },
   { key: "seating", label: "🪑 席次" },
   { key: "rundown", label: "📋 進行" },
+  { key: "songs", label: "🎵 選曲" },
   { key: "resources", label: "🏛 リソース" },
   { key: "chat", label: "💬 チャット" },
 ];
@@ -56,12 +57,13 @@ const COUPLE_TABS = [
   { key: "catalog", label: "👗 えらぶ" },
   { key: "seating", label: "🪑 席次" },
   { key: "rundown", label: "📋 当日の流れ" },
+  { key: "songs", label: "🎵 選曲" },
   { key: "chat", label: "💬 チャット" },
 ];
 // 旧アンカー・旧タブ名との互換（スマホ下部ナビ・過去リンクを壊さない）
 const TAB_ALIAS: Record<string, string> = {
   catalog: "quotes", orders: "quotes", meals: "quotes", billing: "quotes",
-  songs: "rundown", after: "info",
+  steps: "info", after: "info",
 };
 
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
@@ -206,53 +208,54 @@ export default async function CaseDetailPage({
         followUpsCount,
       })
     : null;
+  // 「進め方」は単独タブではなく、今のステップに対応するタブの中にさりげなく表示する
+  const currentStep = salesSteps?.steps.find((st) => st.key === salesSteps.currentKey) ?? null;
+  const currentStepTab = currentStep ? (currentStep.anchor === "hearing" ? "info" : currentStep.anchor ?? "info") : null;
 
   return (
     <>
       <div className="section-h" style={{ marginBottom: 4 }}>
         <Link href="/cases" className="btn sm">← 一覧</Link>
       </div>
-      <div className="section-h" style={{ flexWrap: "wrap", marginTop: 2 }}>
-        <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.01em" }}>
-          {c.brideName === "―" ? c.groomName : `${c.groomName} & ${c.brideName}`}
-        </h1>
-        {c.caseType !== "wedding" && <span className="pill blue">{meta.emoji} {meta.label}</span>}
-        {c.status === "tentative" && <span className="pill violet">仮予約</span>}
-        <span className={`dday ${dd.cls}`}>{dd.text}</span>
-        <span className="pill gray">{c.guestCount}名</span>
+
+      {/* タブバー：新郎新婦名・日取・進捗はここに集約（お客様のスマホはタブ部分のみ下部ナビと重複するため非表示） */}
+      <div className="tabs-bar">
+        <div className={s.role === "couple" ? "tabs pc-only" : "tabs"}>
+          {tabDefs.map((t2) => (
+            <Link key={t2.key} href={`/cases/${c.id}?tab=${t2.key}`} className={tab === t2.key ? "active" : ""}>
+              {t2.label}
+              {t2.key === "chat" && unreadChatCount > 0 && <span className="tab-badge" />}
+            </Link>
+          ))}
+        </div>
+        <div className="tabs-meta">
+          <b className="tabs-meta-name">{c.brideName === "―" ? c.groomName : `${c.groomName} & ${c.brideName}`}</b>
+          {c.caseType !== "wedding" && <span className="pill blue">{meta.emoji} {meta.label}</span>}
+          {c.status === "tentative" && <span className="pill violet">仮予約</span>}
+          <span className={`dday ${dd.cls}`}>{dd.text}</span>
+          <span className="pill gray">{c.guestCount}名</span>
+          <span className="tabs-meta-date">{d(c.weddingDate)}</span>
+          {ddays >= 0 && (
+            <span className="cc-progress tabs-meta-progress">
+              <span className="progress"><span style={{ width: `${progress.percent}%` }} /></span>
+              <span className="cc-pct">{progress.percent}%</span>
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* タブバー（1タブ=1業務。お客様のスマホは下部ナビがあるためPCのみ表示） */}
-      <div className={s.role === "couple" ? "tabs pc-only" : "tabs"}>
-        {tabDefs.map((t2) => (
-          <Link key={t2.key} href={`/cases/${c.id}?tab=${t2.key}`} className={tab === t2.key ? "active" : ""}>
-            {t2.label}
-            {t2.key === "chat" && unreadChatCount > 0 && <span className="tab-badge" />}
-          </Link>
-        ))}
-      </div>
-
-      {/* ヒーロー：スリムな1行バー（日数は上のタイトル行のピルで表示済みのため、ここでは重複させない） */}
+      {/* ヒーロー：日程の詳細（時間・会場）と次回打ち合わせ、当日運営・見積書への導線 */}
       <div className="card hero-slim">
         <div className="hero-slim-main">
-          <b>{d(c.weddingDate)} {timeRange} {c.caseType === "wedding" && c.chapelVenue ? `${c.chapelVenue.name} → ${venueName}` : venueName}</b>
+          <b>{timeRange} {c.caseType === "wedding" && c.chapelVenue ? `${c.chapelVenue.name} → ${venueName}` : venueName}</b>
           <span>
             {nextMeeting
               ? <>次回打ち合わせ：{nextMeeting.toLocaleString("ja-JP", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" })}</>
               : ddays >= 0 ? "次回打ち合わせ：未設定" : `実施日：${d(c.weddingDate)}`}
           </span>
         </div>
-        {ddays >= 0 && (
-          <div className="cc-progress hero-slim-progress">
-            <div className="progress"><span style={{ width: `${progress.percent}%` }} /></div>
-            <span className="cc-pct">{progress.percent}%</span>
-          </div>
-        )}
         {isStaff && (
           <div className="quick-actions">
-            <Link className="btn sm" href={`/cases/${c.id}?tab=chat`}>💬 チャット</Link>
-            <Link className="btn sm" href={`/cases/${c.id}?tab=meetings`}>📝 打ち合わせ</Link>
-            <Link className="btn sm" href={`/cases/${c.id}?tab=rundown`}>📋 進行表</Link>
             {ddays >= 0 && ddays <= 1 && <a className="btn sm primary" href={`/live/${c.id}`}>▶ 当日運営</a>}
             <a className="btn sm" href={`/print/${c.id}/quote`} target="_blank">🖨 見積書</a>
           </div>
@@ -264,6 +267,7 @@ export default async function CaseDetailPage({
       <div className="section-h"><h2>📝 打ち合わせ記録</h2>
         <span className="pill gray">{c.meetings.length}回実施{nextMeeting ? ` ・ 次回 ${d(nextMeeting)}` : ""}</span>
       </div>
+        {currentStep && currentStepTab === "meetings" && <TabAdvice caseId={c.id} step={currentStep} />}
         <div className="grid" style={{ gap: 14 }}>
           {can(s.role, "meetings", "edit") && (
             <div style={{ display: "flex" }}><MeetingForm caseId={c.id} /></div>
@@ -298,6 +302,7 @@ export default async function CaseDetailPage({
 
       {/* ===== 📌 案件タブ（基本情報・ToDo・ヒヤリング・顧客攻略・失注・アンケート） ===== */}
       {isStaff && tab === "info" && (<>
+      {currentStep && currentStepTab === "info" && <TabAdvice caseId={c.id} step={currentStep} />}
       {can(s.role, "cases", "edit") && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
           <LostCaseButton caseId={c.id} isLost={c.status === "lost"} lostReason={c.lostReason} />
@@ -429,6 +434,7 @@ export default async function CaseDetailPage({
               <h2>🏛 リソース確認</h2>
               <span style={{ fontSize: 11.5, color: "var(--text3)" }}>施設・設備・スタッフ・お客様の進行を1本の時間軸で確認</span>
             </div>
+            {currentStep && currentStepTab === "resources" && <TabAdvice caseId={c.id} step={currentStep} />}
             <DayVenueChart dateISO={iso} />
             <div style={{ height: 14 }} />
             <AssignmentsPanel
@@ -459,19 +465,10 @@ export default async function CaseDetailPage({
         </>
       )}
 
-      {/* ===== 🪜 進め方タブ（商談ステップ・トーク・チェック） ===== */}
-      {isStaff && tab === "steps" && salesSteps && (<>
-      <div className="section-h"><h2>🪜 進め方</h2>
-        <span style={{ fontSize: 11.5, color: "var(--text3)" }}>今どのステップか・次に何をすべきかを確認できます</span>
-      </div>
-      <div className="steps-tab-wrap">
-        <SalesStepNav steps={salesSteps.steps} currentKey={salesSteps.currentKey} />
-      </div>
-      </>)}
-
-      {/* ===== 💰 みつもりタブ（見積・カタログ・発注・料理・請求） ===== */}
+      {/* ===== 💰 見積タブ（見積・カタログ・発注・料理・請求） ===== */}
       {tab === "quotes" && (<>
       <div className="section-h" id="quotes"><h2>💰 見積</h2></div>
+      {isStaff && currentStep && currentStepTab === "quotes" && <TabAdvice caseId={c.id} step={currentStep} />}
       {/* お客様向け：支払いスケジュールと入金状況（閲覧専用） */}
       {s.role === "couple" && (paymentPlans.length > 0 || invoices.length > 0) && (
         <div className="card" style={{ marginBottom: 14 }}>
@@ -576,9 +573,10 @@ export default async function CaseDetailPage({
         lockSide={mySeatingSide} caseType={c.caseType} previewOnly editHref={`/cases/${c.id}/seating`} />
       </>)}
 
-      {/* ===== 📋 進行タブ（進行表・楽曲） ===== */}
+      {/* ===== 📋 進行タブ ===== */}
       {tab === "rundown" && (<>
       <div className="section-h" id="rundown"><h2>📋 進行表</h2></div>
+      {isStaff && currentStep && currentStepTab === "rundown" && <TabAdvice caseId={c.id} step={currentStep} />}
       <RundownEditor
         caseId={c.id}
         caseType={c.caseType}
@@ -599,8 +597,11 @@ export default async function CaseDetailPage({
           } : null,
         }))}
       />
+      </>)}
 
-      <div className="section-h" id="songs" style={{ marginTop: 24 }}><h2>🎵 楽曲</h2></div>
+      {/* ===== 🎵 選曲タブ ===== */}
+      {tab === "songs" && (<>
+      <div className="section-h" id="songs"><h2>🎵 選曲</h2></div>
       <SongsPanel
         caseId={c.id}
         caseType={c.caseType}

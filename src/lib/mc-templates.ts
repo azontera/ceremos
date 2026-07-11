@@ -14,6 +14,82 @@ const TONE_WRAPS: { name: string; wrap: (plain: string) => string }[] = [
   { name: "情熱的", wrap: (p) => `熱い想いを込めまして、${p}` },
 ];
 
+// 宴会・式典・イベント案件用のバンク（新婦・両家などの婚礼用語は一切使わない。{新郎}は「代表者名」として使用）
+const BANQUET_BANK: { match: (t: string) => boolean; templates: Tmpl[] }[] = [
+  {
+    match: (t) => t.includes("開宴") || t.includes("開会") || t.includes("開演"),
+    templates: [
+      { name: "フォーマル", text: "皆さま、大変長らくお待たせいたしました。ただいまより{新郎}を開宴いたします。" },
+      { name: "あたたかい", text: "お待たせいたしました！それでは{新郎}を始めさせていただきます。" },
+      { name: "シンプル", text: "ただいまより開宴いたします。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("乾杯"),
+    templates: [
+      { name: "フォーマル", text: "それではご来賓の〇〇様より、乾杯のご発声を賜りたく存じます。皆さま、グラスのご用意をお願いいたします。" },
+      { name: "あたたかい", text: "お待たせいたしました、乾杯のお時間です。〇〇様、ご発声をお願いいたします。皆さまグラスをお手元にどうぞ。" },
+      { name: "シンプル", text: "〇〇様より乾杯のご発声です。グラスのご用意をお願いします。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("主催者挨拶") || t.includes("代表挨拶") || (t.includes("挨拶") && !t.includes("来賓")),
+    templates: [
+      { name: "フォーマル", text: "はじめに、主催者を代表いたしまして{新郎}よりご挨拶を申し上げます。" },
+      { name: "あたたかい", text: "それでは、{新郎}よりひとことご挨拶をいただきたいと思います。" },
+      { name: "シンプル", text: "{新郎}よりご挨拶です。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("来賓"),
+    templates: [
+      { name: "フォーマル", text: "続きまして、ご来賓を代表いたしまして〇〇様よりご祝辞を賜りたく存じます。" },
+      { name: "あたたかい", text: "ここで、ご来賓の〇〇様よりお言葉を頂戴いたします。" },
+      { name: "シンプル", text: "ご来賓〇〇様よりご挨拶です。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("表彰"),
+    templates: [
+      { name: "フォーマル", text: "それでは表彰式に移らせていただきます。受賞者の皆さまは前方へお進みください。" },
+      { name: "あたたかい", text: "お待たせいたしました、表彰のお時間です！受賞された皆さま、どうぞ前へお越しください。" },
+      { name: "シンプル", text: "表彰式です。受賞者の方は前方へお願いします。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("余興") || t.includes("アトラクション"),
+    templates: [
+      { name: "フォーマル", text: "続きまして、余興のお時間でございます。皆さま、どうぞお楽しみください。" },
+      { name: "あたたかい", text: "お楽しみの余興タイムです！さあ盛り上がってまいりましょう。" },
+      { name: "シンプル", text: "余興のお時間です。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("歓談"),
+    templates: [
+      { name: "フォーマル", text: "しばらくご歓談のお時間とさせていただきます。お料理・お飲み物とともにお楽しみください。" },
+      { name: "あたたかい", text: "ここでしばしご歓談タイムです！お近くの方とぜひ交流をお楽しみください。" },
+      { name: "シンプル", text: "ご歓談のお時間です。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("中締め") || t.includes("締め"),
+    templates: [
+      { name: "フォーマル", text: "宴もたけなわではございますが、ここで中締めとさせていただきます。〇〇様、一本締めのご発声をお願いいたします。" },
+      { name: "あたたかい", text: "名残惜しいですが、そろそろ中締めのお時間です。〇〇様、よろしくお願いいたします。" },
+      { name: "シンプル", text: "中締めです。〇〇様、ご発声をお願いします。" },
+    ],
+  },
+  {
+    match: (t) => t.includes("お開き") || t.includes("閉会") || t.includes("送賓") || t.includes("お見送り"),
+    templates: [
+      { name: "フォーマル", text: "本日はお忙しい中お集まりいただき、誠にありがとうございました。以上をもちましてお開きとさせていただきます。" },
+      { name: "あたたかい", text: "皆さま、本日は誠にありがとうございました。お気をつけてお帰りください。" },
+      { name: "シンプル", text: "以上をもちましてお開きです。お忘れ物のないようお願いいたします。" },
+    ],
+  },
+];
+
 const BANK: { match: (t: string) => boolean; templates: Tmpl[] }[] = [
   {
     match: (t) => t.includes("入場") && !t.includes("再入場"),
@@ -102,8 +178,10 @@ function expand(list: Tmpl[]): Tmpl[] {
   return [...list, ...extra];
 }
 
-export function mcTemplates(title: string, groom: string, bride: string): Tmpl[] {
-  const hit = BANK.find((b) => b.match(title));
+// bridal=false（宴会・式典・イベント）では婚礼用語ゼロのBANQUET_BANKを使う。{新郎}は代表者名として使う
+export function mcTemplates(title: string, groom: string, bride: string, bridal = true): Tmpl[] {
+  const bank = bridal ? BANK : BANQUET_BANK;
+  const hit = bank.find((b) => b.match(title));
   const list = expand(hit ? hit.templates : GENERIC);
   const g = groom.split(" ").pop() ?? groom;
   const b2 = bride.split(" ").pop() ?? bride;

@@ -23,7 +23,7 @@ const NAV = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
   if (!s) redirect("/login");
-  // 承認猶予（10時間）：未承認のセルフ登録（お客様・業者）は登録から10時間まで仮利用できる。
+  // 承認猶予（10時間）：未承認の業者セルフ登録は登録から10時間まで仮利用できる（お客様は登録時に承認不要）。
   // 期限が切れたらログイン画面へ（データは消えない。プランナーの承認で再開／否認＝削除）
   const me = await prisma.user.findUnique({
     where: { id: s.userId },

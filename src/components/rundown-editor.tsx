@@ -192,7 +192,7 @@ export function RundownEditor({
     // 楽曲の編集は楽曲タブ専用（ここではシーンだけ決めて、新規行に曲枠を自動作成する）
     const suggestScene = () =>
       SCENE_PRESETS.find((p) => p.value === scene)?.songScene || sceneForTitle(title) || "";
-    const tmpls = title ? mcTemplates(title, groomName, brideName) : [];
+    const tmpls = title ? mcTemplates(title, groomName, brideName, bridal) : [];
 
     async function submit(e: React.FormEvent<HTMLFormElement>) {
       e.preventDefault();

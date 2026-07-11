@@ -79,8 +79,8 @@ function LoginInner() {
     setBusy(false);
   }
 
-  // 新規登録（お客様・業者）：登録後はそのまま自動ログインして利用開始できる。
-  // プランナーの確認（承認）は後からでOK — 未承認のまま10時間経過するとログイン不可（情報は消えない）
+  // 新規登録：登録後はそのまま自動ログインして利用開始できる。
+  // お客様は承認不要（プランナーが案件に紐づけることで実業務化）／業者はプランナー確認が10時間の猶予付きで必要
   async function submitSignup(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(""); setInfo("");
@@ -221,10 +221,15 @@ function LoginInner() {
             <button className="btn primary" style={{ width: "100%", justifyContent: "center", marginTop: 6 }} disabled={busy}>
               {busy ? "登録中…" : "登録してはじめる"}
             </button>
-            {!quick && (
+            {!quick && eventType === "vendor" && (
               <p style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 10, marginBottom: 0, lineHeight: 1.9 }}>
                 ご登録後、すぐにご利用いただけます。担当プランナーの確認は後ほど行われます<br />
                 （確認完了まで10時間を超えると一時的にログインできなくなりますが、ご登録の情報は消えません）
+              </p>
+            )}
+            {!quick && eventType !== "vendor" && (
+              <p style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 10, marginBottom: 0, lineHeight: 1.9 }}>
+                ご登録後、すぐにご利用いただけます。担当プランナーが案件を作成すると、お見積りなど本格的なご利用が始まります。
               </p>
             )}
           </form>

@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
   if (!user || !user.isActive || !(await bcrypt.compare(password, user.passwordHash))) {
     return NextResponse.json({ error: "メールアドレスまたはパスワードが正しくありません" }, { status: 401 });
   }
-  // セルフ登録アカウント：メール認証 → 管理者承認 の完了が必要
+  // セルフ登録アカウント：メール認証の完了が必要
   // ※ クイック登録（店頭QR）はメール認証前でもログイン可（本人確認はログイン後のクエストで実施）
   let quickSignup = false;
   try { quickSignup = !!JSON.parse(user.profileJson ?? "{}").quickSignup; } catch { /* ignore */ }
   if (!user.emailVerified && !quickSignup) {
     return NextResponse.json({ error: "メールアドレスの確認が完了していません。登録時にお送りしたメールのリンクをクリックしてください" }, { status: 403 });
   }
-  // 承認猶予：セルフ登録（お客様・業者）は承認前でも登録から10時間は利用できる。
+  // 承認猶予：業者のセルフ登録は承認前でも登録から10時間は利用できる（お客様は登録時に承認不要のため対象外）。
   // 期限切れでも情報は消えない（プランナーの承認で再びログイン可。否認＝削除で消える）
   let grace: { remainingMs: number } | null = null;
   if (!user.approved) {
