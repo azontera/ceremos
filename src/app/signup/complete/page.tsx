@@ -45,11 +45,12 @@ function CompleteInner() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/ceremos-mark.svg" alt="CEREMOS" width={52} height={52} />
         <h1 style={{ letterSpacing: ".16em", color: "var(--accent-text)" }}>ご登録ありがとうございます</h1>
-        <p>式場スタッフの承認が完了するとログインいただけます。</p>
+        <p>ご登録が完了しました。すぐにログインしてご利用いただけます。</p>
+        <Link className="btn primary" style={{ display: "inline-flex", marginTop: 6 }} href="/login">ログイン画面へ →</Link>
         {done.surveyToken && (
           <>
-            <p style={{ fontSize: 12.5 }}>よろしければ続けて<b>事前アンケート（任意）</b>にご協力ください。</p>
-            <Link className="btn primary" style={{ display: "inline-flex", marginTop: 6 }}
+            <p style={{ fontSize: 12.5, marginTop: 14 }}>よろしければ続けて<b>事前アンケート（任意）</b>にご協力ください。</p>
+            <Link className="btn" style={{ display: "inline-flex", marginTop: 6 }}
               href={`/survey?token=${done.surveyToken}`}>📝 アンケートに回答する（約3分）</Link>
           </>
         )}

@@ -5,7 +5,6 @@ import { can, canAccessCase } from "@/lib/rbac";
 import { getCaseDetail } from "@/lib/queries";
 import { computeProgress, daysUntil, ddayLabel } from "@/lib/progress";
 import { typeMeta } from "@/lib/case-types";
-import { timeRangeLabel } from "@/lib/case-time";
 import { getMasterOptions } from "@/lib/masters";
 import { SURVEY_30 } from "@/lib/survey";
 
@@ -106,7 +105,6 @@ export default async function CaseDetailPage({
   const dd = ddayLabel(ddays);
   const meta = typeMeta(c.caseType);
   const venueName = c.banquetVenue?.name ?? c.venueFree ?? "会場未定";
-  const timeRange = timeRangeLabel(c.weddingDate, c.endTime);
   const progress = computeProgress({
     meetingsCount: c.meetings.length,
     quotes: c.quotes,
@@ -241,25 +239,8 @@ export default async function CaseDetailPage({
               <span className="cc-pct">{progress.percent}%</span>
             </span>
           )}
+          {isStaff && ddays >= 0 && ddays <= 1 && <a className="btn sm primary" href={`/live/${c.id}`}>▶ 当日運営</a>}
         </div>
-      </div>
-
-      {/* ヒーロー：日程の詳細（時間・会場）と次回打ち合わせ、当日運営・見積書への導線 */}
-      <div className="card hero-slim">
-        <div className="hero-slim-main">
-          <b>{timeRange} {c.caseType === "wedding" && c.chapelVenue ? `${c.chapelVenue.name} → ${venueName}` : venueName}</b>
-          <span>
-            {nextMeeting
-              ? <>次回打ち合わせ：{nextMeeting.toLocaleString("ja-JP", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" })}</>
-              : ddays >= 0 ? "次回打ち合わせ：未設定" : `実施日：${d(c.weddingDate)}`}
-          </span>
-        </div>
-        {isStaff && (
-          <div className="quick-actions">
-            {ddays >= 0 && ddays <= 1 && <a className="btn sm primary" href={`/live/${c.id}`}>▶ 当日運営</a>}
-            <a className="btn sm" href={`/print/${c.id}/quote`} target="_blank">🖨 見積書</a>
-          </div>
-        )}
       </div>
 
       {/* ===== 📝 打ち合わせタブ ===== */}
