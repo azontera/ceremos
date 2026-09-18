@@ -9,6 +9,12 @@ description: CEREMOS（wedding-erp）のローカル検証手順（型チェッ�
 - 型チェック: `npx tsc --noEmit`
 - スキーマ変更後: `npx prisma db push && npx prisma generate` を先に実行（生成済みクライアントが古いとtscが通らない）
 
+## Cowork（device_bash・Linux VM）での回避策 ※2026-09-18確認済み・最短
+- binaries.prisma.sh が403で落ちるため、ダミーのエンジンパスを指定してダウンロードをスキップ:
+  `touch $HOME/dummy.so.node && PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 PRISMA_QUERY_ENGINE_LIBRARY=$HOME/dummy.so.node npx prisma generate`
+- これで node_modules/.prisma/client/index.d.ts（型）だけ生成され `npx tsc --noEmit` が通る（実行時エンジンは無いので dev サーバーは不可＝型検証専用）
+- 削除系操作は device_request_delete_permission 承認後に rm 可
+
 ## サンドボックス環境での回避策（Claude Code実行時にnpx prismaが失敗する場合）
 - `/tmp/werp/`（他ユーザー所有の場合は `$HOME/werp`）に package.json `{"name":"werp-check","private":true}` を作成
 - node_modules を repo に symlink、schema を sed で `output = "/tmp/werp/client"` 追記して:

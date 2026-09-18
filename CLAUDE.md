@@ -5,15 +5,16 @@
 
 ## プロジェクト概要
 - Next.js 14.2 App Router / Prisma 5.22 + SQLite / JWT(jose) / bcryptjs
-- 場所: `~/Documents/wedding-erp`（**ここが正本**。`~/Documents/Codex/wedding-erp` は古い複製 → 編集しない）
+- 場所: `~/Documents/oldpc/wedding-erp`（**ここが正本**・2026-09-18に旧PCの部分コピーから.git経由で復旧。旧`~/Documents/wedding-erp`・`~/Documents/Codex/wedding-erp`はもう無い前提）
+- 実装依頼は都度でOK（溜める必要なし）。Cowork経由の作業では調査・実装をサブエージェントに委譲してトークン節約
 - 本番: Sakura VPS `os3-314-46741.vs.sakura.ne.jp`（IP 49.212.230.245・pm2 app名 `wedding-erp`・ポート3200・nginx・同居アプリ: lion-app/stagestock/vehicle-inspection）。公開URL: http://ceremos.grandeclat.jp ※DNS切替待ち（旧IP 133.167.93.62 のまま）・切替後にHTTPS化。旧サーバー os3-376-21308 は廃止
-- ユーザー: 寺沢真彦さん（tera@azon.jp）。日本語でやりとり。**要望を5件ほど溜めてから一括実装する方式**（利用料節約のため）
+- ユーザー: 寺沢真彦さん（tera@azon.jp）。日本語でやりとり。要望は都度対応
 - Git: ローカルのみ（2026-07-09〜・push先なし）。作業単位でコミットしてロールバック可能に保つ
 
 ## デプロイ（必ずMacの apple@ プロンプトから実行。サーバー内で実行しない）
 詳細手順・前後チェックは `.claude/skills/deploy/SKILL.md`（「デプロイして」で発動）。
 ```
-rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclude storage --exclude .env --exclude backups ~/Documents/wedding-erp/ ubuntu@os3-314-46741.vs.sakura.ne.jp:~/wedding-erp/ && ssh ubuntu@os3-314-46741.vs.sakura.ne.jp "bash ~/wedding-erp/scripts/server-update.sh" 2>&1 | tail -3
+rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclude storage --exclude .env --exclude backups ~/Documents/oldpc/wedding-erp/ ubuntu@os3-314-46741.vs.sakura.ne.jp:~/wedding-erp/ && ssh ubuntu@os3-314-46741.vs.sakura.ne.jp "bash ~/wedding-erp/scripts/server-update.sh" 2>&1 | tail -3
 ```
 - server-update.sh が `prisma db push` とビルド・pm2 restart を実行
 - **注意: rsyncは削除を同期しない**。ローカルでファイルを削除したデプロイでは、サーバー側でも該当パスを `rm` してからビルド（残骸ビルドエラーの事故歴あり）
