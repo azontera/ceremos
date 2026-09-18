@@ -11,8 +11,8 @@
 - ユーザー: 寺沢真彦さん（tera@azon.jp）。日本語でやりとり。要望は都度対応
 - Git: ローカルのみ（2026-07-09〜・push先なし）。作業単位でコミットしてロールバック可能に保つ
 
-## デプロイ（必ずMacの apple@ プロンプトから実行。サーバー内で実行しない）
-詳細手順・前後チェックは `.claude/skills/deploy/SKILL.md`（「デプロイして」で発動）。
+## デプロイ（Cowork の device_bash から専用鍵で直接実行可・2026-09-18〜）
+詳細手順・前後チェックは `.claude/skills/deploy/SKILL.md`（「デプロイして」で発動）。SSH: `ssh -F .deploy/ssh-config ceremos-prod`（鍵は `.deploy/`・gitignore済み）。以下はMacターミナルから実行する場合の予備コマンド。
 ```
 rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclude storage --exclude .env --exclude backups ~/Documents/oldpc/wedding-erp/ ubuntu@os3-314-46741.vs.sakura.ne.jp:~/wedding-erp/ && ssh ubuntu@os3-314-46741.vs.sakura.ne.jp "bash ~/wedding-erp/scripts/server-update.sh" 2>&1 | tail -3
 ```

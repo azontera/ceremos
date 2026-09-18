@@ -12,3 +12,5 @@ backups/
 # 写真素材の原本（159MB・storageへ反映済み。tarバックアップで別管理）
 catalog-attire-photo-assets/
 catalog-photo-assets-all/
+# Cowork用SSH鍵（秘密鍵・絶対にコミットしない）
+.deploy/
