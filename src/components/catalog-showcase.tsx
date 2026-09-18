@@ -6,12 +6,13 @@
 //  ・何個でも（オプション類・数量つき）
 // URL共有で誰でも閲覧（ログイン不要）。選択は端末に保存。coupleログイン中は案件見積へ保存（同期）。
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { isBridal, BRIDAL_ONLY_CATALOG_CATEGORIES } from "@/lib/terms";
 
 type Item = {
   id: string; category: string; name: string; desc: string | null; price: number;
   vendorName: string | null; imageId: string | null;
 };
-type Viewer = { role: string; name: string; caseId: string | null; cases: { id: string; label: string }[] } | null;
+type Viewer = { role: string; name: string; caseId: string | null; caseType: string | null; cases: { id: string; label: string }[] } | null;
 
 type Rule = { kind: "one" } | { kind: "max"; n: number } | { kind: "any" };
 type Group = { key: string; title: string; note: string; rule: Rule; match: (i: Item) => boolean };
@@ -117,18 +118,26 @@ export function CatalogShowcase() {
   }, [cart]);
   useEffect(() => { window.scrollTo({ top: 0 }); setLimitMsg(""); }, [step]);
 
+  // 案件に紐づくお客様のみcaseType判定可（スタッフ・未紐付けは従来通りブライダル既定＝案件選択前は判別不可のため）
+  const bridal = isBridal(viewer?.caseId ? viewer.caseType : undefined);
+
   // ===== ステップへ品目を振り分け（先勝ち。「その他」は残り全部） =====
   const { steps, groupItems } = useMemo(() => {
     const claimed = new Set<string>();
     const map = new Map<string, Item[]>();
+    const pool = bridal ? (items ?? []) : (items ?? []).filter((i) => !BRIDAL_ONLY_CATALOG_CATEGORIES.includes(i.category));
     for (const st of STEPS) for (const g of st.groups) {
-      const list = (items ?? []).filter((i) => !claimed.has(i.id) && g.match(i));
+      const list = pool.filter((i) => !claimed.has(i.id) && g.match(i));
       list.forEach((i) => claimed.add(i.id));
       map.set(`${st.key}/${g.key}`, list);
     }
-    const active = STEPS.filter((st) => st.groups.some((g) => (map.get(`${st.key}/${g.key}`) ?? []).length > 0));
+    const active = STEPS.filter((st) => st.groups.some((g) => (map.get(`${st.key}/${g.key}`) ?? []).length > 0))
+      // 宴会案件は衣装（新婦/新郎）が出ないため、残る小物・美容だけの場合はステップ名を差し替え
+      .map((st) => (st.key === "dress" && !bridal
+        ? { ...st, title: "小物・美容", en: "BEAUTY & ACCESSORIES", desc: "ヘアメイク・アクセサリーなどのオプションです。" }
+        : st));
     return { steps: active, groupItems: map };
-  }, [items]);
+  }, [items, bridal]);
 
   const byId = useMemo(() => new Map((items ?? []).map((i) => [i.id, i])), [items]);
   const cartList = useMemo(

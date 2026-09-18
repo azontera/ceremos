@@ -93,7 +93,7 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
             href: `/cases/${c.id}?tab=seating`,
           }] : []),
           ...(!surveyDone ? [{
-            icon: "📝", title: "事前アンケートに答える", desc: "お好みやご希望を教えてください",
+            icon: "📝", title: "かんたん事前アンケートに答える（1〜2分）", desc: "診断とは別の項目です。連絡先やお好みなど簡単な追加情報を教えてください",
             href: "/survey",
           }] : []),
           ...(c.songs.filter((sg) => sg.title && sg.title !== "（曲未定）").length < 5 && c.rundownItems.length > 0 ? [{

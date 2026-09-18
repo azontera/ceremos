@@ -26,17 +26,19 @@ export async function GET() {
 
   // 閲覧者（ログインしていれば）：coupleは自分の案件へ自動反映、スタッフ（見積編集権限あり）は案件を選んで反映
   const s = await getSession().catch(() => null);
-  let viewer: { role: string; name: string; caseId: string | null; cases: { id: string; label: string }[] } | null = null;
+  let viewer: { role: string; name: string; caseId: string | null; caseType: string | null; cases: { id: string; label: string }[] } | null = null;
   if (s) {
     let caseId: string | null = null;
+    let caseType: string | null = null;
     let cases: { id: string; label: string }[] = [];
     if (s.role === "couple") {
       const m = await prisma.caseMember.findFirst({
         where: { userId: s.userId },
         orderBy: { case: { createdAt: "desc" } },
-        select: { caseId: true },
+        select: { caseId: true, case: { select: { caseType: true } } },
       });
       caseId = m?.caseId ?? null;
+      caseType = m?.case?.caseType ?? null;
     } else if (can(s.role, "quotes", "edit")) {
       const rows = await prisma.case.findMany({
         where: await caseScopeWhere(s),
@@ -49,7 +51,7 @@ export async function GET() {
         label: `${c.groomName}・${c.brideName}（${c.weddingDate.toLocaleDateString("ja-JP")}）`,
       }));
     }
-    viewer = { role: s.role, name: s.name, caseId, cases };
+    viewer = { role: s.role, name: s.name, caseId, caseType, cases };
   }
 
   return NextResponse.json({

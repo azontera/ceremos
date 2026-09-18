@@ -935,12 +935,12 @@ export default async function PrintPage({
             );
           })()}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 10 }}>
-            {seatTables.map((t) => (
-              <div key={t.id} style={{ border: "1.5px solid #b06a5e", borderRadius: 10, padding: "10px 14px", breakInside: "avoid" }}>
+            {seatTables.map((tbl) => (
+              <div key={tbl.id} style={{ border: "1.5px solid #b06a5e", borderRadius: 10, padding: "10px 14px", breakInside: "avoid" }}>
                 <div style={{ fontWeight: 700, fontSize: 13, borderBottom: "1px solid #ddd", paddingBottom: 4, marginBottom: 6 }}>
-                  {t.name}
+                  {tbl.name}
                 </div>
-                {seatGuests.filter((g) => g.tableId === t.id).map((g) => (
+                {seatGuests.filter((g) => g.tableId === tbl.id).map((g) => (
                   <div key={g.id} style={{ fontSize: 12, lineHeight: 1.9, display: "flex", justifyContent: "space-between", gap: 8 }}>
                     <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
                       {g.allergy && <span style={{ color: "#b0201c" }}>⚠ </span>}{g.name} 様
@@ -948,11 +948,11 @@ export default async function PrintPage({
                     <span style={{ color: "#888", textAlign: "right" }}>
                       {g.allergy ? <span style={{ color: "#b0201c", fontWeight: 700 }}>{g.allergy}<br /></span> : null}
                       {g.title ? <>{g.title}<br /></> : null}
-                      {g.side === "groom" ? "新郎" : "新婦"}・{g.relation}
+                      {g.side === "groom" ? t("groomSide", c.caseType) : t("brideSide", c.caseType)}・{g.relation}
                     </span>
                   </div>
                 ))}
-                {seatGuests.filter((g) => g.tableId === t.id).length === 0 && (
+                {seatGuests.filter((g) => g.tableId === tbl.id).length === 0 && (
                   <div style={{ fontSize: 11, color: "#aaa" }}>（未割当）</div>
                 )}
               </div>
@@ -968,7 +968,7 @@ export default async function PrintPage({
                   <span style={{ fontWeight: 600 }}>{g.allergy && <span style={{ color: "#b0201c" }}>⚠ </span>}{g.name} 様</span>
                   <span style={{ color: "#888" }}>
                     {g.allergy ? <span style={{ color: "#b0201c", fontWeight: 700 }}>{g.allergy}　</span> : null}
-                    {g.side === "groom" ? "新郎" : "新婦"}・{g.relation}
+                    {g.side === "groom" ? t("groomSide", c.caseType) : t("brideSide", c.caseType)}・{g.relation}
                   </span>
                 </div>
               ))}

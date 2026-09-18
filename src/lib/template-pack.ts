@@ -5,6 +5,7 @@ import { prisma } from "./db";
 import { applyRundownTemplateToCase } from "./rundown";
 import { effectiveEnd } from "./case-time";
 import { scaleQuoteItems, expandStaffCount, numberedLabel } from "./pack-scaling";
+import { isBridal } from "./terms";
 
 // perGuest: 1名あたり品目（数値=1名あたりの数量係数。true=1。人数で qty が自動調整される）
 export type PackQuoteItem = { name: string; category?: string; qty?: number; unitPrice?: number; perGuest?: number | boolean };
@@ -234,9 +235,10 @@ export async function applyPackToCase(
   const done: string[] = [];
   const c = await prisma.case.findUnique({
     where: { id: caseId },
-    select: { guestCount: true, weddingDate: true, endTime: true, groomName: true, brideName: true },
+    select: { guestCount: true, weddingDate: true, endTime: true, groomName: true, brideName: true, caseType: true },
   });
   if (!c) return done;
+  const bridal = isBridal(c.caseType);
 
   const guests = Math.max(1, c.guestCount || 60);
 
@@ -314,8 +316,8 @@ export async function applyPackToCase(
     if (pack.resources?.useRooms !== false) {
       const waiting = await prisma.venue.findMany({ where: { type: "waiting" }, orderBy: { name: "asc" } });
       const kitchen = await prisma.venue.findFirst({ where: { type: "kitchen" } });
-      if (waiting[0]) data.push({ kind: "waiting", label: "新郎新婦 控室", venueId: waiting[0].id, startsAt: at(start, -150), endsAt: at(end, 30) });
-      if (waiting[1]) data.push({ kind: "waiting", label: "親族控室", venueId: waiting[1].id, startsAt: at(start, -90), endsAt: end });
+      if (waiting[0]) data.push({ kind: "waiting", label: bridal ? "新郎新婦 控室" : "主催者 控室", venueId: waiting[0].id, startsAt: at(start, -150), endsAt: at(end, 30) });
+      if (waiting[1]) data.push({ kind: "waiting", label: bridal ? "親族控室" : "スタッフ控室", venueId: waiting[1].id, startsAt: at(start, -90), endsAt: end });
       if (kitchen) data.push({ kind: "kitchen", label: "コース仕込み・提供", venueId: kitchen.id, startsAt: at(start, -210), endsAt: at(end, -30) });
     }
     const staff: PackResource[] = pack.resources?.staff?.length
