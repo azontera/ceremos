@@ -9,7 +9,7 @@
 - 実装依頼は都度でOK（溜める必要なし）。Cowork経由の作業では調査・実装をサブエージェントに委譲してトークン節約
 - 本番: Sakura VPS `os3-314-46741.vs.sakura.ne.jp`（IP 49.212.230.245・pm2 app名 `wedding-erp`・ポート3200・nginx・同居アプリ: lion-app/stagestock/vehicle-inspection）。公開URL: http://ceremos.grandeclat.jp ※DNS切替待ち（旧IP 133.167.93.62 のまま）・切替後にHTTPS化。旧サーバー os3-376-21308 は廃止
 - ユーザー: 寺沢真彦さん（tera@azon.jp）。日本語でやりとり。要望は都度対応
-- Git: ローカルのみ（2026-07-09〜・push先なし）。作業単位でコミットしてロールバック可能に保つ
+- Git: GitHub `azontera/ceremos`（private・2026-09-18〜）。作業単位でコミットし **コミット後は必ず `git push`**（鍵は `.deploy/github_key`・core.sshCommand設定済み）
 
 ## デプロイ（Cowork の device_bash から専用鍵で直接実行可・2026-09-18〜）
 詳細手順・前後チェックは `.claude/skills/deploy/SKILL.md`（「デプロイして」で発動）。SSH: `ssh -F .deploy/ssh-config ceremos-prod`（鍵は `.deploy/`・gitignore済み）。以下はMacターミナルから実行する場合の予備コマンド。
