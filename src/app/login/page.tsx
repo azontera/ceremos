@@ -73,8 +73,8 @@ function LoginInner() {
         <div className="eg-rule" />
 
         <p style={{ fontSize: 12.5, lineHeight: 2 }}>
-          おふたりの専用ページ<br />
-          <span style={{ fontSize: 11 }}>準備の進み具合・楽曲えらび・プランナーとのご連絡に</span>
+          お客様・スタッフ共通のログインページ<br />
+          <span style={{ fontSize: 11 }}>お見積り・席次・当日の流れ・プランナーとのご連絡に</span>
         </p>
 
         <form onSubmit={submitLogin}>
@@ -97,8 +97,8 @@ function LoginInner() {
             {busy ? "ログイン中…" : "ログイン"}
           </button>
           <p style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 10, marginBottom: 0, lineHeight: 1.9 }}>
-            ログインIDとパスワードは担当プランナーからお渡しします。<br />
-            お忘れの場合は担当プランナーへご連絡ください。スタッフの方も同じフォームからログインできます。
+            お客様のログインID（メールアドレス）とパスワードは担当プランナーからお渡しします。<br />
+            お忘れの場合は担当プランナーへご連絡ください。
           </p>
         </form>
 
