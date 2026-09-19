@@ -3,6 +3,18 @@
 旧CLAUDE.mdから2026-07-09に移設（原文のまま・掲載順は概ね新しい順だが一部前後あり）。
 **以後のセッションの実装記録は、このファイルの先頭（この行の下）に追記する。CLAUDE.mdには書かない。**
 
+## 2026-09-19（フェーズ1：「受注〜当日運営ERP」への絞り込み・機能削除）
+オーナー決定により営業OS層・セルフ登録・業者ログイン等を削除（コミットA〜H、削除37ファイル・-5,800行）。DBカラムはデータ保全のため残置（hearingJson / lostStep / approved / emailVerified / User.vendorId / Case.slot）。
+- **A 営業OS層削除**: AIヒヤリング診断（hearing.ts・hearing wizard・/print/[id]/fortune・fortune-print.ts）、AIプラン取込（ai-plan-import・hearing/md）、顧客攻略（strategy-panel）、商談ステップ（sales-steps.ts→LOST_REASONSはcase-types.tsへ移設、成果ダッシュボードの「ステップ別失注」カード削除）、TabAdvice、お客様プランウィザード（customer-wizard）、見積おすすめ（quote-recommend）。楽曲好み診断（10問）は「🎯 好みのアーティスト」ブロックに縮小（groom/brideArtistsの+30ブーストのみ残し、song-db.tsのERA/CLASSIC等のスコアリングを削除）
+- **B ヒヤリング統一**: 10問アンケート（/survey・User.profileJson.survey）を唯一の「ヒヤリング」とし、表示名を「事前アンケート」→「ヒヤリング」に統一。案件タブの「お客様ヒヤリング」表示は維持。ダッシュボード「今やること」から診断項目を削除
+- **C テンプレAI生成経路削除**: template-pack-prompt.ts・template-pack-spec.ts・docs/AIデータ生成プロンプト.md・案件から逆生成（buildPackFromCase / save-as-template）を削除。template-pack.tsはparsePack/scorePack/applyPackToCase/loadPacksのみ。管理画面は「テンプレ一式（JSON）を読み込み」に改名
+- **D 公開カタログ削除**: /catalog・catalog-showcase・catalog.css・/api/v1/catalog/public を削除。添付配信はカタログ画像も要ログインに変更（middlewareの匿名許可を撤去）
+- **E 業者ログイン廃止**: /vendors/[id]・vendor-panels・/api/v1/quote-items を削除。SessionからvendorIdを撤去し、vendorId持ちユーザーはログイン拒否。ユーザー管理から所属業者・外注グループ・印刷会社/引出物会社ロールを削除（rbacからも）。業者マスタ（vendors-admin・/api/v1/admin/vendors）・発注書印刷（/print/vendor/[id]）・カタログ管理（vendor-catalog.tsxは管理側エディタとして維持）は残す
+- **F セルフ登録・承認廃止**: /api/v1/auth/signup・verify・complete-profile・/signup・/print/signup-qr・/api/v1/signup/quick-qr・/api/v1/customers/recent-quick・/approvals・pending-approvals・clock.tsの10h猶予・approved判定を削除。ログイン画面はログイン単一フォーム。**お客様アカウントは案件ページ「👤 お客様アカウント」→「＋ アカウント発行」**（新API `POST /api/v1/cases/[id]/customers`：同メールの顧客が既存なら紐付けのみ）。?quick=トークン・surveyトークンも廃止
+- **G 見積ステータス集約**: draft / confirmed（確定）/ archived の3状態（`src/lib/quote-status.ts`）。旧approved / customer_confirmedは読み取り時に確定扱い。確定・取り消しはquotes編集権（支配人承認なし）。確定時の他版アーカイブ＋発注自動作成は従来の承認時処理をそのまま移行。ダッシュボードKPI「見積承認待ち」→「見積 下書き中」、通知の承認待ちを削除
+- **H 残骸整理**: notify.ts（LINE）・mail.ts・meal-templates.ts・freee/Google/Resend記述（.env.example・CLAUDE.md・TODO）を削除。アフター記録（after-panel）を📌案件タブ末尾「📮 アフター」（#after）に配置し、ダッシュボード「未対応クレーム」→ `?tab=info#after` に修正。seed.cjs / smoke-test.cjs を新ステータスに更新
+- 検証：`npx tsc --noEmit` 全通過（サンドボックスのためbuild・DB未実施）。サーバー反映時はrsyncが削除を同期しないため、削除パスの `rm` を忘れないこと
+
 ## 2026-07-18（宴会モード用語切替の取りこぼしを一括修正）
 0711の一括修正（宴会モードの機能ギャップ修正）で取りこぼされていた3件＋関連の軽微なUX改善1件。調査エージェント2体による監査で発見・全件ファイル実物で確認済み。
 - `src/app/print/[id]/[doc]/page.tsx`: 席次表印刷の個々のゲストラベル（卓ごとの一覧・椅子席一覧）が見出し行と異なり「新郎/新婦」を直書きしていた問題を`t("groomSide"/"brideSide", c.caseType)`に統一。修正中に`seatTables.map((t) => …)`のループ変数`t`が用語関数`t()`をシャドウしていたことが判明し、`tbl`にリネームして解消（tscのコンパイルエラーで検出）
