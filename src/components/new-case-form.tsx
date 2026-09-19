@@ -26,20 +26,6 @@ export function NewCaseForm({
   const packMatchesType = (p: Pack) =>
     caseType === "wedding" ? p.category !== "banquet" : p.category !== "bridal";
   const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
-  // お客様クイック登録QR（24時間有効・承認不要）＋直近登録のお客様（未紐付け）
-  type QuickCust = { id: string; name: string; partnerName: string; eventType?: string; email: string; phone: string | null };
-  const [quickUrl, setQuickUrl] = useState("");
-  const [recent, setRecent] = useState<QuickCust[]>([]);
-  const [cust, setCust] = useState<QuickCust | null>(null); // 選択中のお客様（自動入力＆紐付け）
-  useEffect(() => {
-    fetch("/api/v1/signup/quick-qr").then((r) => r.json()).then((d) => { if (d.url) setQuickUrl(d.url); }).catch(() => {});
-    const loadRecent = () =>
-      fetch("/api/v1/customers/recent-quick").then((r) => r.json()).then((d) => setRecent(d.customers ?? [])).catch(() => {});
-    loadRecent();
-    const t = setInterval(loadRecent, 5000); // お客様がスマホで登録した瞬間に現れる
-    return () => clearInterval(t);
-  }, []);
-
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true); setErr("");
@@ -49,7 +35,7 @@ export function NewCaseForm({
     const res = await fetch("/api/v1/cases", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...f, caseType, customerId: cust?.id ?? "" }),
+      body: JSON.stringify({ ...f, caseType }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
@@ -113,7 +99,7 @@ export function NewCaseForm({
             <button type="button" onClick={() => setPackId("")}
               className="card" style={{ padding: 12, textAlign: "left", cursor: "pointer", border: packId === "" ? "2px solid var(--accent)" : "1px solid var(--border)" }}>
               <b style={{ fontSize: 12.5 }}>選択しない</b>
-              <div style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 3 }}>あとで見積タブ・お客様ウィザードからも選べます</div>
+              <div style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 3 }}>あとで見積タブからも選べます</div>
             </button>
             {packs.filter(packMatchesType).map((p) => (
               <button type="button" key={p.id} onClick={() => setPackId(packId === p.id ? "" : p.id)}
@@ -132,62 +118,23 @@ export function NewCaseForm({
         </div>
       )}
 
-      {/* お客様セルフ登録QR（このQRからの登録は承認不要・24時間有効） */}
-      {quickUrl && (
-        <div className="card" style={{ padding: "12px 18px", marginBottom: 16, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&margin=1&data=${encodeURIComponent(quickUrl)}`}
-            alt="お客様かんたん登録QR" width={110} height={110}
-            style={{ border: "1px solid var(--border)", borderRadius: 8 }} />
-          <div style={{ fontSize: 12.5, lineHeight: 1.9, minWidth: 200, flex: 1 }}>
-            <b>📱 お客様かんたん登録QR</b>（<b>24時間有効・承認不要</b>）<br />
-            お客様がスマホで読み取り、<b>新郎・新婦のお名前＋連絡先＋メール＋パスワード</b>を登録すると、
-            下に自動で現れます。<b>選んでから作成</b>すると認証（紐付け）まで完了します。
-            {recent.length > 0 && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                {recent.map((r) => {
-                  const active = cust?.id === r.id;
-                  return (
-                    <button type="button" key={r.id}
-                      onClick={() => {
-                        setCust(active ? null : r);
-                        if (!active && r.eventType === "party") setCaseType("party"); // 宴会登録のお客様→種別も自動切替
-                      }}
-                      className={`pill ${active ? "accent" : "gray"}`} style={{ cursor: "pointer", border: active ? "1.5px solid var(--accent)" : "1.5px solid var(--border)", fontSize: 12, padding: "5px 12px" }}>
-                      {active ? "✓ " : "🆕 "}{r.name}{r.partnerName ? ` & ${r.partnerName}` : ""}（{r.phone || r.email}）
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {cust && (
-              <div style={{ fontSize: 11.5, color: "var(--green, #3d8a5f)", marginTop: 4 }}>
-                ✓ 作成すると <b>{cust.name}</b> 様のアカウントがこの案件に紐付き、ログイン後すぐ利用できます
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="card" style={{ padding: 24 }}>
         <div className="grid cols-2">
           {caseType === "wedding" ? (
             <>
-              <div className="field" key={`g-${cust?.id ?? "none"}`}>
+              <div className="field">
                 <label>新郎 氏名 *</label>
-                <input className="form-input" name="groomName" required placeholder="例：高橋 蓮" defaultValue={cust?.name ?? ""} />
+                <input className="form-input" name="groomName" required placeholder="例：高橋 蓮" />
               </div>
-              <div className="field" key={`b-${cust?.id ?? "none"}`}>
+              <div className="field">
                 <label>新婦 氏名 <span style={{ fontWeight: 400, color: "var(--text3)" }}>（未定なら空欄OK）</span></label>
-                <input className="form-input" name="brideName" placeholder="後から概要で入力できます" defaultValue={cust?.partnerName ?? ""} />
+                <input className="form-input" name="brideName" placeholder="後から概要で入力できます" />
               </div>
             </>
           ) : (
-            <div className="field" style={{ gridColumn: "1 / -1" }} key={`ev-${cust?.id ?? "none"}`}>
+            <div className="field" style={{ gridColumn: "1 / -1" }}>
               <label>{meta.label}名 *</label>
               <input className="form-input" name="eventName" required
-                defaultValue={cust && cust.eventType === "party" ? `${cust.name} 様 ご宴会` : undefined}
                 placeholder={
                   caseType === "party" ? "例：株式会社◯◯ 創立30周年 祝賀会"
                   : caseType === "ceremony" ? "例：◯◯市 成人式典／表彰式"
@@ -229,13 +176,13 @@ export function NewCaseForm({
             <label>人数（予定）</label>
             <input className="form-input" type="number" name="guestCount" defaultValue={60} min={0} />
           </div>
-          <div className="field" key={`e-${cust?.id ?? "none"}`}>
+          <div className="field">
             <label>代表メール</label>
-            <input className="form-input" type="email" name="email" defaultValue={cust?.email ?? ""} />
+            <input className="form-input" type="email" name="email" />
           </div>
-          <div className="field" key={`p-${cust?.id ?? "none"}`}>
+          <div className="field">
             <label>代表電話</label>
-            <input className="form-input" name="phone" defaultValue={cust?.phone ?? ""} placeholder="例：090-1234-5678" />
+            <input className="form-input" name="phone" placeholder="例：090-1234-5678" />
           </div>
         </div>
         {err && <div className="form-err">{err}</div>}

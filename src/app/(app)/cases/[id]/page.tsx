@@ -310,9 +310,11 @@ export default async function CaseDetailPage({
           }))}
         />
       </div></div>
-      {/* お客様アカウント（連絡先・パスワードの変更） */}
+      {/* お客様アカウント（発行・連絡先・パスワードの変更） */}
       {["admin", "manager", "planner"].includes(s.role) && (
         <CustomerAccountPanel
+          caseId={c.id}
+          bridal={isBridal(c.caseType)}
           accounts={customerMembers.map((m) => ({
             id: m.user.id, name: m.user.name, email: m.user.email,
             phone: m.user.phone, address: m.user.address,

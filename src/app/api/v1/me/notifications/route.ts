@@ -6,7 +6,7 @@ import { caseScopeWhere } from "@/lib/rbac";
 export const dynamic = "force-dynamic";
 
 // GET: 通知（ヘッダーのベル用・30秒ポーリング）
-// 未読チャット / 承認待ち見積 / 未対応クレーム / 承認待ちユーザー / 期限超過（タスク・発注・未入金）
+// 未読チャット / 承認待ち見積 / 未対応クレーム / 期限超過（タスク・発注・未入金）
 export async function GET() {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -18,7 +18,7 @@ export async function GET() {
   const isStaff = s.role !== "couple";
   const isManager = ["admin", "manager"].includes(s.role);
 
-  const [unreadMessages, pendingQuotes, openClaims, pendingUsers, overdueTasks, unpaid] = await Promise.all([
+  const [unreadMessages, pendingQuotes, openClaims, overdueTasks, unpaid] = await Promise.all([
     prisma.chatMessage.findMany({
       where: { ...inScope, NOT: { senderId: s.userId }, reads: { none: { userId: s.userId } } },
       include: { case: { select: { id: true, groomName: true, brideName: true } }, sender: { select: { name: true } } },
@@ -33,11 +33,6 @@ export async function GET() {
     isStaff ? prisma.followUp.findMany({
       where: { ...inScope, type: "claim", status: "open" },
       include: { case: { select: { id: true, groomName: true } } },
-      take: 5,
-    }) : [],
-    ["admin", "manager", "planner"].includes(s.role) ? prisma.user.findMany({
-      where: { approved: false, isActive: true },
-      select: { id: true, name: true },
       take: 5,
     }) : [],
     isStaff ? prisma.task.findMany({
@@ -66,10 +61,6 @@ export async function GET() {
       kind: "claim", label: `🚨 未対応クレーム：${f.body.slice(0, 30)}…`,
       sub: f.case.groomName, href: `/cases/${f.caseId}?tab=after`,
     })),
-    ...pendingUsers.map((u) => ({
-      kind: "user", label: `👤 ${u.name} 様の登録が承認待ち`,
-      sub: "承認待ちのお客様", href: "/approvals",
-    })),
     ...overdueTasks.map((t) => ({
       kind: "task", label: `⏰ 期限超過タスク：${t.title.slice(0, 26)}`,
       sub: t.case?.groomName ?? "", href: t.case ? `/cases/${t.case.id}` : "/dashboard",
@@ -81,7 +72,7 @@ export async function GET() {
   ];
 
   return NextResponse.json({
-    count: unreadMessages.length + pendingQuotes.length + openClaims.length + pendingUsers.length + overdueTasks.length + unpaid.length,
+    count: unreadMessages.length + pendingQuotes.length + openClaims.length + overdueTasks.length + unpaid.length,
     items: items.slice(0, 12),
   });
 }

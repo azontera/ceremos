@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-type MobileNavProps = { role: string; pendingCount: number; coupleCaseId?: string | null };
+type MobileNavProps = { role: string; coupleCaseId?: string | null };
 
 // スマホ用の下部ナビゲーション（720px以下で表示）
 // サイドバーが隠れるスマホでも、親指だけで主要画面を行き来できるようにする
@@ -17,7 +17,7 @@ export function MobileNav(props: MobileNavProps) {
   );
 }
 
-function MobileNavInner({ role, pendingCount, coupleCaseId }: MobileNavProps) {
+function MobileNavInner({ role, coupleCaseId }: MobileNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -106,7 +106,6 @@ function MobileNavInner({ role, pendingCount, coupleCaseId }: MobileNavProps) {
             {item("/dashboard", "▦", "ホーム")}
             {item("/cases", "👥", "案件")}
             {item("/calendar", "📅", "カレンダー")}
-            {isStaff3 && item("/approvals", "✅", "承認", pendingCount || undefined)}
             {role === "couple" && item("/survey", "📝", "ヒヤリング")}
           </>
         )}

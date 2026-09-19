@@ -1,16 +1,10 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { WEDDING_SURVEY, BANQUET_SURVEY, GENDER_OPTS, CHILDREN_OPTS } from "@/lib/survey";
 
-export default function SurveyPage() {
-  return <Suspense><SurveyInner /></Suspense>;
-}
-
 // ヒヤリング（すべて任意）— ログイン済みセッションで回答できる
-function SurveyInner() {
-  const token = useSearchParams().get("token") ?? "";
+export default function SurveyPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [basics, setBasics] = useState<Record<string, string>>({}); // 生年月日・性別・子供の有無（任意）
   const [eventType, setEventType] = useState<"wedding" | "party">("wedding");
@@ -21,7 +15,7 @@ function SurveyInner() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/v1/auth/survey${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+    fetch("/api/v1/auth/survey")
       .then(async (r) => {
         if (!r.ok) { setInvalid(true); return; }
         const d = await r.json();
@@ -31,7 +25,7 @@ function SurveyInner() {
       })
       .catch(() => setInvalid(true))
       .finally(() => setLoaded(true));
-  }, [token]);
+  }, []);
 
   const bridal = eventType === "wedding";
   const questions = bridal ? WEDDING_SURVEY : BANQUET_SURVEY;
@@ -42,7 +36,7 @@ function SurveyInner() {
     const res = await fetch("/api/v1/auth/survey", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: token || undefined, survey: answers, basics }),
+      body: JSON.stringify({ survey: answers, basics }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) setSaved(true);
@@ -54,7 +48,7 @@ function SurveyInner() {
   if (invalid) {
     return (
       <div className="login-wrap"><div className="login-card">
-        <p>リンクの有効期限が切れているか、無効です。<br />ログイン後にヒヤリングへ回答できます。</p>
+        <p>ログイン後にヒヤリングへ回答できます。</p>
         <Link className="btn" href="/login">ログイン画面へ</Link>
       </div></div>
     );

@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const PUBLIC = [
-  "/login", "/signup", "/survey",
-  "/api/v1/auth/login", "/api/v1/auth/signup", "/api/v1/auth/verify",
-  "/api/v1/auth/complete-profile", "/api/v1/auth/survey",
+  "/login",
+  "/api/v1/auth/login",
   "/api/v1/auth/demo-login", // 🧪 検証ワンクリックログイン（DEMO_MODE=1のときだけ中身が有効）
   "/api/v1/branding",        // 公開ロゴ・式場名（ログイン画面で使用）
 ];

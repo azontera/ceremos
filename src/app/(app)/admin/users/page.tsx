@@ -29,17 +29,11 @@ export default async function AdminUsersPage() {
       select: { id: true, groomName: true, brideName: true, weddingDate: true },
     }),
   ]);
-  const pendingUsers = users.filter((u) => !u.approved && u.isActive);
 
 
   return (
     <>
       <div className="section-h"><h2>ユーザー・権限管理</h2><span className="pill gray">{users.length}名</span></div>
-      {pendingUsers.length > 0 && (
-        <p style={{ fontSize: 12.5, marginBottom: 12 }}>
-          🔔 承認待ちのお客様が <b>{pendingUsers.length}名</b> います → <Link href="/approvals">承認画面を開く</Link>
-        </p>
-      )}
       <p style={{ fontSize: 12.5, marginBottom: 12 }}>
         💐 顧客（新郎新婦・宴会）の管理は <Link href="/customers">顧客マスタ</Link> へ移動しました。
       </p>

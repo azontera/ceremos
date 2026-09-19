@@ -43,7 +43,7 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
       {cases.length === 0 && (
         <div className="card" style={{ padding: 24 }}>
           <p style={{ margin: 0, fontSize: 13.5, lineHeight: 2 }}>
-            ご登録ありがとうございます。担当プランナーがご準備を進めています。<br />
+            担当プランナーがご準備を進めています。<br />
             お時間のあるときに <Link href="/survey">📝 ヒヤリングシート</Link> のご回答にご協力ください。
           </p>
         </div>
@@ -308,18 +308,7 @@ export default async function DashboardPage() {
         <div className="card">
           <div className="card-h">やることリスト</div>
           <div className="card-b">
-            {/* 承認待ちのお客様（最優先タスクとして表示） */}
-            {d.pendingApprovals.map((u) => (
-              <Link className="list-row" key={u.id} href="/approvals">
-                <span className="dot" style={{ background: "var(--amber)" }} />
-                <div className="t">
-                  <b>👤 {u.name} 様の登録を承認する</b>
-                  <span>{new Date(u.createdAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })} 登録・案件への紐付けもここから</span>
-                </div>
-                <span className="pill amber">承認待ち</span>
-              </Link>
-            ))}
-            {d.openTasks.length === 0 && d.pendingApprovals.length === 0 && <div className="empty">未処理タスクはありません</div>}
+            {d.openTasks.length === 0 && <div className="empty">未処理タスクはありません</div>}
             {d.openTasks.map((t) => {
               const overdue = t.dueAt && new Date(t.dueAt) < now;
               const inner = (

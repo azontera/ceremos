@@ -12,7 +12,7 @@ type Profile = {
 } | null;
 export type CustomerRow = {
   id: string; name: string; email: string; phone: string | null; address: string | null;
-  isActive: boolean; approved: boolean; createdAt: string;
+  isActive: boolean; createdAt: string;
   profile: Profile;
   cases: { id: string; label: string }[];
   messageCount: number;
@@ -67,7 +67,6 @@ export function CustomersAdmin({ customers, canDelete }: { customers: CustomerRo
                   <b>{u.name} 様{p?.furigana ? <span style={{ fontWeight: 400, fontSize: 11, color: "var(--text3)" }}>（{p.furigana}）</span> : null}
                     {p?.partnerName && <> ＆ {p.partnerName} 様{p.partnerFurigana ? <span style={{ fontWeight: 400, fontSize: 11, color: "var(--text3)" }}>（{p.partnerFurigana}）</span> : null}</>}
                     {p?.eventType && <span className="pill blue" style={{ marginLeft: 6 }}>{EVENT_TYPE_LABEL[p.eventType] ?? p.eventType}</span>}
-                    {!u.approved && <span className="pill amber" style={{ marginLeft: 6 }}>承認待ち</span>}
                     {!u.isActive && <span className="pill gray" style={{ marginLeft: 6 }}>無効</span>}
                   </b>
                   <span>
@@ -113,7 +112,7 @@ export function CustomersAdmin({ customers, canDelete }: { customers: CustomerRo
         })}
       </div>
       <p style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 10 }}>
-        ※ 削除できるのはチャット履歴のない顧客のみ（支配人・管理者）。履歴のある顧客は記録保全のため「無効化」を使ってください。承認待ちの対応は「✅ 承認待ち」ページから。
+        ※ お客様アカウントの作成は各案件ページの「👤 お客様アカウント」から行います。削除できるのはチャット履歴のない顧客のみ（支配人・管理者）。履歴のある顧客は記録保全のため「無効化」を使ってください。
       </p>
     </>
   );

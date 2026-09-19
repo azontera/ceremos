@@ -57,15 +57,6 @@ export async function getDashboard(s: Session) {
       }),
     ]);
 
-  // 承認待ちのお客様（プランナー以上の「やることリスト」に表示）
-  const pendingApprovals = ["admin", "manager", "planner"].includes(s.role)
-    ? await prisma.user.findMany({
-        where: { approved: false, isActive: true },
-        select: { id: true, name: true, createdAt: true },
-        orderBy: { createdAt: "asc" },
-      })
-    : [];
-
   // 未対応クレーム（アフター記録）— 顧客ロールには出さない
   const openClaims = s.role === "couple" ? [] : await prisma.followUp.findMany({
     where: { ...inScope, type: "claim", status: "open" },
@@ -94,7 +85,6 @@ export async function getDashboard(s: Session) {
 
   return {
     todayEvents, todayWeddings, weekWeddings: weekList.length, weekList, openTasks, pendingQuotes,
-    pendingApprovals,
     openClaims: openClaims.map((f) => ({
       id: f.id, caseId: f.caseId, body: f.body, at: f.createdAt,
       caseLabel: `${f.case.groomName.split(" ")[0]}様${f.case.brideName !== "―" ? `・${f.case.brideName.split(" ")[0]}様` : ""}`,

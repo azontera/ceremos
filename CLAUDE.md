@@ -34,8 +34,7 @@ rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclu
 - `src/components/songs-panel.tsx` … 選曲専用。🎲全曲おまかせ／♪全シーンに曲枠作成／⏱cueTiming
 - `src/components/audio-console.tsx` … 再生プレイヤー（Space/Esc・波形シーク・F.I/F.O・投影モニター・暗転・待機画像）
 - `src/app/live/[id]/screen/page.tsx` … 映像ウィンドウ。BroadcastChannel名 `ceremos-live-${caseId}`（cmd: load/volume/seek/stop/fade/blackout/idle-refresh/fullscreen/progress/screen-ready/screen-ended/key）
-- `src/app/login/page.tsx` … お客様入口（ログイン/新規登録2タブ・ID+PWのみ。?quick=トークン24hは承認不要）
-- `src/app/api/v1/auth/signup/route.ts` … 通常登録=approved:false（承認待ち・猶予10h=src/lib/clock.ts）
+- `src/app/login/page.tsx` … 入口（ログインのみ・ID+PW。セルフ登録・承認フローは廃止）。お客様アカウントは案件ページの「👤 お客様アカウント」からプランナーが発行（`/api/v1/cases/[id]/customers`）
 - `src/components/seating-panel.tsx` … 席次表エディタ（ズーム・編集モード・実寸m・アレルギー⚠）
 - `src/components/new-case-form.tsx` … 新規案件（進行表は見積テンプレから自動生成）
 - `src/components/settings-admin.tsx` … 会場・設備マスタ（実寸m）／ロゴ／待機画像

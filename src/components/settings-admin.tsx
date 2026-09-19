@@ -234,10 +234,10 @@ export function SettingsAdmin({
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-h">顧客セルフ登録（専用QRコード）</div>
+        <div className="card-h">お客様の入口（ログインQRコード）</div>
         <div className="card-b">
           <div className="field">
-            <label>お客様の登録導線</label>
+            <label>お客様のログイン導線</label>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -246,15 +246,10 @@ export function SettingsAdmin({
                 alt="お客様入口QR" width={120} height={120}
                 style={{ border: "1px solid var(--border)", borderRadius: 8 }} />
               <div style={{ fontSize: 12.5, lineHeight: 1.9 }}>
-                お客様の入口は<b>この常設QR → /login</b>（メールアドレス＋パスワードで登録・ログイン）。<br />
-                ご登録後はプランナーの<b>承認</b>で全機能が使えます。その場で即利用は新規案件画面の<b>24時間QR</b>を。<br />
-                <a className="btn sm" href="/print/signup-qr" target="_blank" style={{ marginTop: 4 }}>🖨 QRポスターを印刷（A4）</a>
-                <span style={{ color: "var(--text3)", marginLeft: 8 }}>店頭・打ち合わせ席・パンフレットに</span>
+                お客様の入口は<b>この常設QR → /login</b>（メールアドレス＋パスワードでログイン）。<br />
+                お客様のアカウントは、各案件ページの<b>👤 お客様アカウント</b>からプランナーが作成してお渡しします。
               </div>
             </div>
-          </div>
-          <div style={{ marginTop: 10, fontSize: 12, color: "var(--text3)" }}>
-            ご登録後は、すべて<b>プランナーの承認</b>で全機能が使えるようになります（メール確認は行いません）。
           </div>
         </div>
       </div>

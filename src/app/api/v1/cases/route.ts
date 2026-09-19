@@ -129,16 +129,6 @@ export async function POST(req: NextRequest) {
     },
   });
   // ※ 進行表・料理・席次・リソースは見積タブでテンプレートを選んで保存すると自動セットアップされる
-  // クイック登録のお客様を選んで作成した場合：案件に紐付けて承認扱いに
-  if (b.customerId) {
-    const cust = await prisma.user.findFirst({ where: { id: b.customerId, role: "couple" } });
-    if (cust) {
-      await prisma.caseMember.create({ data: { caseId: c.id, userId: cust.id, roleInCase: "couple" } })
-        .catch(() => { /* 既に紐付け済みなら無視 */ });
-      await prisma.user.update({ where: { id: cust.id }, data: { approved: true } });
-      await audit(s.userId, "link", "case_customer", c.id, { customerId: cust.id });
-    }
-  }
   await audit(s.userId, "create", "case", c.id);
   return NextResponse.json({ case: c }, { status: 201 });
   } catch (e) {

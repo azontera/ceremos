@@ -10,7 +10,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { A2hsBanner } from "@/components/a2hs-banner";
 import { getBranding } from "@/lib/settings";
 import { APP_VERSION, BUILD_AT } from "@/lib/version";
-import { DEMO_MODE, getNow, graceRemainingMs } from "@/lib/clock";
+import { DEMO_MODE } from "@/lib/clock";
 import { DemoBar } from "@/components/demo-bar";
 import { SidebarShell } from "@/components/sidebar-shell";
 
@@ -23,26 +23,11 @@ const NAV = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
   if (!s) redirect("/login");
-  // 承認猶予（10時間）：未承認のセルフ登録（お客様・業者）は登録から10時間まで仮利用できる。
-  // 期限が切れたらログイン画面へ（データは消えない。プランナーの承認で再開／否認＝削除）
-  const me = await prisma.user.findUnique({
-    where: { id: s.userId },
-    select: { approved: true, isActive: true, createdAt: true },
-  });
+  const me = await prisma.user.findUnique({ where: { id: s.userId }, select: { isActive: true } });
   if (!me || !me.isActive) redirect("/login");
-  let graceHoursLeft: number | null = null;
-  if (!me.approved) {
-    const remain = graceRemainingMs(me.createdAt, await getNow());
-    if (remain <= 0) redirect("/login?grace=expired");
-    graceHoursLeft = Math.max(1, Math.ceil(remain / 3600000));
-  }
   const today = new Date().toLocaleDateString("ja-JP", {
     year: "numeric", month: "long", day: "numeric", weekday: "short",
   });
-  // 承認待ち件数（プランナー以上のナビにバッジ表示）
-  const pendingCount = ["admin", "manager", "planner"].includes(s.role)
-    ? await prisma.user.count({ where: { approved: false, isActive: true } })
-    : 0;
   // お客様の下部ナビはアプリ風（自分の案件へ直接ジャンプ）。直近の案件IDを渡す
   const coupleCase = s.role === "couple"
     ? await prisma.caseMember.findFirst({
@@ -77,15 +62,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span aria-hidden>{n.icon}</span><span className="nav-label">{n.label}</span>
           </Link>
         ))}
-        {["admin", "manager", "planner"].includes(s.role) && (
-          <Link href="/approvals" className="nav-item" title="承認待ち">
-            <span aria-hidden>✅</span><span className="nav-label">承認待ち
-              {pendingCount > 0 && (
-                <span className="pill amber" style={{ marginLeft: 6 }}>{pendingCount}</span>
-              )}
-            </span>
-          </Link>
-        )}
         {s.role === "couple" && (
           <Link href="/survey" className="nav-item" title="ヒヤリング">
             <span aria-hidden>📝</span><span className="nav-label">ヒヤリング</span>
@@ -143,12 +119,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="main">
         {/* 🧪 検証モード：時間送り＋ワンクリックアカウント切替（本番=DEMO_MODEなしでは出ない） */}
         {DEMO_MODE && <DemoBar />}
-        {/* 承認猶予中の案内（プランナー確認は後でもOK・残り時間を表示） */}
-        {graceHoursLeft !== null && (
-          <div style={{ background: "#f5efe6", borderBottom: "1px solid #c8a97e", color: "#7a6248", padding: "7px 16px", fontSize: 12.5 }}>
-            ⏳ プランナーの確認待ちです。確認が完了するまで、あと約<b>{graceHoursLeft}時間</b>ご利用いただけます（確認後は制限なくご利用いただけます。ご登録の情報は消えません）
-          </div>
-        )}
         <Topbar couple={isCouple} dateText={today}>
           <NotificationsBell />
         </Topbar>
@@ -159,7 +129,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </div>
       {/* スマホ用の下部ナビ（720px以下で表示）。お客様は自分の案件タブへ直行するアプリ風ナビ */}
-      <MobileNav role={s.role} pendingCount={pendingCount}
+      <MobileNav role={s.role}
         coupleCaseId={coupleCase?.case.id ?? null} />
     </div>
   );

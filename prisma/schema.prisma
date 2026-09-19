@@ -25,8 +25,8 @@ model User {
   isActive      Boolean  @default(true)
   address       String?  // セルフ登録時の住所
   phone         String?  // セルフ登録時の電話
-  approved      Boolean  @default(true)  // セルフ登録は false → 管理者承認で true
-  emailVerified Boolean  @default(true)  // セルフ登録は false → メール認証で true
+  approved      Boolean  @default(true)  // （旧セルフ登録の承認フラグ。現在は未使用・全員承認扱い）
+  emailVerified Boolean  @default(true)  // （旧メール認証フラグ。現在は未使用）
   verifyToken   String?  @unique         // メール認証トークン
   profileJson   String?  // セルフ登録時のプロフィール（年齢・性別・生年月日・子供の有無・希望種別）＋アンケート30問の回答
   createdAt     DateTime @default(now())

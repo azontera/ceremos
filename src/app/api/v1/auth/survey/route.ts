@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession, verifyUserToken } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/rbac";
 
 // ヒヤリング（任意）— ログイン済み顧客セッションで読み書き
-async function resolveUserId(req: NextRequest, tokenFromBody?: string): Promise<string | null> {
-  const token = tokenFromBody ?? req.nextUrl.searchParams.get("token") ?? "";
-  if (token) return verifyUserToken(token, "survey");
+async function resolveUserId(): Promise<string | null> {
   const s = await getSession();
   return s?.userId ?? null;
 }
 
-export async function GET(req: NextRequest) {
-  const userId = await resolveUserId(req);
+export async function GET() {
+  const userId = await resolveUserId();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const u = await prisma.user.findUnique({
     where: { id: userId },
@@ -36,8 +34,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const b = await req.json().catch(() => ({}));
-  const userId = await resolveUserId(req, b.token);
-  if (!userId) return NextResponse.json({ error: "リンクの有効期限が切れています。ログイン後に再度お試しください" }, { status: 401 });
+  const userId = await resolveUserId();
+  if (!userId) return NextResponse.json({ error: "ログイン後に再度お試しください" }, { status: 401 });
 
   const u = await prisma.user.findUnique({ where: { id: userId } });
   if (!u || !u.isActive) return NextResponse.json({ error: "not found" }, { status: 404 });

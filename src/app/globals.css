@@ -206,11 +206,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   background:#4a3f36;border-color:#4a3f36;border-radius:4px;letter-spacing:.22em;font-weight:600;
 }
 .elegant .btn{border-radius:4px}
-.eg-toggle{
-  padding:7px 18px;font-size:12px;letter-spacing:.14em;cursor:pointer;
-  background:#fff;border:1px solid #ddd2c6;color:#8a7a6a;border-radius:3px;
-}
-.eg-toggle[data-active="true"]{background:#4a3f36;color:#f5efe8;border-color:#4a3f36}
 
 /* ===== お客様アプリ：エレガントテーマ（ログイン画面と同じ世界観をアプリ全体に） ===== */
 .couple-app{

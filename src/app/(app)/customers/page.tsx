@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -21,14 +20,12 @@ export default async function CustomersPage() {
       _count: { select: { messages: true } },
     },
   });
-  const pendingCount = customers.filter((u) => !u.approved && u.isActive).length;
 
   return (
     <>
       <div className="section-h">
         <h2>💐 顧客マスタ</h2>
         <span className="pill gray">{customers.length}名</span>
-        {pendingCount > 0 && <Link href="/approvals" className="pill amber">承認待ち {pendingCount}名 →</Link>}
       </div>
       <CustomersAdmin
         canDelete={["admin", "manager"].includes(s.role)}
@@ -37,7 +34,7 @@ export default async function CustomersPage() {
           try { profile = u.profileJson ? JSON.parse(u.profileJson) : null; } catch { /* ignore */ }
           return {
             id: u.id, name: u.name, email: u.email, phone: u.phone, address: u.address,
-            isActive: u.isActive, approved: u.approved, createdAt: u.createdAt.toISOString(),
+            isActive: u.isActive, createdAt: u.createdAt.toISOString(),
             profile,
             cases: u.memberships.map((m) => ({
               id: m.case.id,
