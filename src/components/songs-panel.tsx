@@ -324,7 +324,7 @@ export function SongsPanel({
           </button>
         )}
         {/* 進行表・台本はスマホのお客様には出さない（下部ナビ・PCタブに集約） */}
-        <a className={isStaff ? "btn" : "btn pc-only"} href={`/cases/${caseId}?tab=rundown`}>📋 進行表（順序・時刻の編集）</a>
+        <a className={isStaff ? "btn" : "btn pc-only"} href="#rundown">📋 進行表（順序・時刻の編集）</a>
         <a className={isStaff ? "btn" : "btn pc-only"} href={`/print/${caseId}/rundown`} target="_blank">🖨 台本</a>
         {isStaff && (
           <a className="btn primary" href={`/live/${caseId}/audio`}

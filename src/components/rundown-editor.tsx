@@ -243,7 +243,7 @@ export function RundownEditor({
         </div>
         {/* 楽曲はここでは編集しない（楽曲タブ専用） */}
         <p style={{ fontSize: 11.5, color: "var(--text3)", margin: 0 }}>
-          ♪ 曲選びは<a href={`/cases/${caseId}?tab=songs`} style={{ fontWeight: 700 }}>楽曲タブ</a>で。
+          ♪ 曲選びは<a href="#songs" style={{ fontWeight: 700 }}>楽曲タブ</a>で。
           この進行表と同じ行が並び、シーンに合わせた「🎲 おすすめ10曲」やYouTube視聴で選べます。
           {item?.song && item.song.title !== "（曲未定）" && <>　現在の曲：<b>{item.song.title}</b></>}
         </p>

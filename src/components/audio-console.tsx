@@ -450,7 +450,7 @@ export function AudioConsole({ caseId, title, sub }: { caseId: string; title: st
         </div>
         <div className="grow" />
         <a className="btn" href={`/print/${caseId}/rundown`} target="_blank">🖨 台本</a>
-        <a className="btn" href={`/cases/${caseId}?tab=songs`}>終了</a>
+        <a className="btn" href={`/cases/${caseId}?tab=rundown#songs`}>終了</a>
       </div>
       {err && <div className="form-err" style={{ margin: "8px 16px 0" }}>{err}</div>}
 

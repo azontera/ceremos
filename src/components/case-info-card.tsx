@@ -26,7 +26,7 @@ export function CaseInfoCard({
   guestCount: number; email: string | null; phone: string | null; address: string | null;
   venueDisplay: string; chapelDisplay: string | null;
   venues: Venue[]; planners: Planner[]; caseTypeOptions: [string, string][];
-  attachmentsSlot: React.ReactNode;
+  attachmentsSlot?: React.ReactNode; // 省略時は添付欄を出さない（添付は💬連絡タブに集約）
 }) {
   const router = useRouter();
   const caseTypes = mergeCaseTypes(caseTypeOptions);
@@ -96,7 +96,7 @@ export function CaseInfoCard({
           <div className="field"><label>担当プランナー</label><div className="val">{plannerName ?? "—"}</div></div>
           <div className="field"><label>連絡先</label><div className="val">{email ?? "—"} ／ {phone ?? "—"}</div></div>
           <div className="field"><label>住所</label><div className="val">{address ?? "—"}</div></div>
-          <div className="field"><label>添付資料</label>{attachmentsSlot}</div>
+          {attachmentsSlot && <div className="field"><label>添付資料</label>{attachmentsSlot}</div>}
         </div>
       </div>
     );

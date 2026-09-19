@@ -7,7 +7,7 @@ type MobileNavProps = { role: string; coupleCaseId?: string | null };
 
 // スマホ用の下部ナビゲーション（720px以下で表示）
 // サイドバーが隠れるスマホでも、親指だけで主要画面を行き来できるようにする
-// お客様（couple）は自分の案件のタブへ直行する「アプリ風」ナビに切り替える
+// お客様（couple）は自分の案件の4タブ（お見積り／席次／当日の流れ／連絡）へ直行する「アプリ風」ナビに切り替える
 // ※ useSearchParams を使うため Suspense でラップ（ビルド時のプリレンダー要件）
 export function MobileNav(props: MobileNavProps) {
   return (
@@ -41,18 +41,14 @@ function MobileNavInner({ role, coupleCaseId }: MobileNavProps) {
     );
   };
 
-  // メニューシートに出す残りのリンク
+  // メニューシートに出す残りのリンク（下部バーに収まらないもの）
   const menuLinks: [string, string][] = [
-    ...(role === "couple" && coupleCaseId ? [
-      [`/cases/${coupleCaseId}?tab=quotes`, "💰 お見積り・お支払い"],
-      [`/cases/${coupleCaseId}?tab=rundown`, "📋 当日の流れ"],
-      [`/cases/${coupleCaseId}?tab=songs`, "🎵 楽曲をえらぶ"],
-      [`/cases/${coupleCaseId}?tab=chat`, "💬 プランナーに相談"],
-    ] as [string, string][] : []),
+    ...(role === "couple" ? [["/survey", "📝 ヒヤリング"]] as [string, string][] : []),
     ...(isStaff3 ? [
-      ["/customers", "💐 顧客マスタ"],
-      ["/admin/catalog", "🛍 カタログ管理"],
+      ["/customers", "💐 顧客"],
+      ["/reports", "📊 成果"],
       ["/admin/templates", "📄 テンプレート"],
+      ["/admin/catalog", "🛍 カタログ管理"],
     ] as [string, string][] : []),
     ...(role === "admin" ? [
       ["/admin/users", "👤 ユーザー・権限"],
@@ -60,7 +56,6 @@ function MobileNavInner({ role, coupleCaseId }: MobileNavProps) {
       ["/admin/settings", "⚙️ 設定"],
       ["/admin/audit", "🕐 操作履歴"],
     ] as [string, string][] : []),
-    ...(role === "couple" && !coupleCaseId ? [["/survey", "📝 ヒヤリング"]] as [string, string][] : []),
     ["/me/password", "🔑 パスワード変更"],
   ];
 
@@ -95,11 +90,12 @@ function MobileNavInner({ role, coupleCaseId }: MobileNavProps) {
       <nav className="mobile-nav">
         {role === "couple" && coupleCaseId ? (
           <>
-            {/* お客様：ホーム／準備／えらぶ／ヒヤリング＋メニュー */}
+            {/* お客様：ホーム／お見積り／席次／当日の流れ／連絡（案件画面の4タブと同じ並び） */}
             {item("/dashboard", "🏠", "ホーム")}
-            {item(`/cases/${coupleCaseId}?tab=seating`, "📋", "準備", undefined, "seating")}
-            {item(`/cases/${coupleCaseId}?tab=catalog`, "👗", "えらぶ", undefined, "catalog")}
-            {item("/survey", "📝", "ヒヤリング")}
+            {item(`/cases/${coupleCaseId}?tab=money`, "💰", "お見積り", undefined, "money")}
+            {item(`/cases/${coupleCaseId}?tab=seating`, "🪑", "席次", undefined, "seating")}
+            {item(`/cases/${coupleCaseId}?tab=rundown`, "📋", "当日の流れ", undefined, "rundown")}
+            {item(`/cases/${coupleCaseId}?tab=chat`, "💬", "連絡", undefined, "chat")}
           </>
         ) : (
           <>

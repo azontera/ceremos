@@ -77,7 +77,7 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
           })),
           ...(latestQuote?.status === "draft" ? [{
             icon: "💰", title: "お見積りのご確認", desc: "新しいお見積りが届いています",
-            href: `/cases/${c.id}?tab=quotes`,
+            href: `/cases/${c.id}?tab=money`,
           }] : []),
           ...(myGuests === 0 ? [{
             icon: "🪑", title: sideLabel ? `${sideLabel}ゲストのご入力（あなたの担当）` : `${term("guests", c.caseType)}のご入力`,
@@ -86,7 +86,7 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
           }] : []),
           ...(c.songs.filter((sg) => sg.title && sg.title !== "（曲未定）").length < 5 && c.rundownItems.length > 0 ? [{
             icon: "🎵", title: "楽曲をえらぶ", desc: "おすすめから視聴して決められます",
-            href: `/cases/${c.id}?tab=songs`,
+            href: `/cases/${c.id}?tab=rundown#songs`,
           }] : []),
         ];
         return (
@@ -137,9 +137,9 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
             <div className="pc-only" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, marginTop: 16 }}>
               {([
                 [`/cases/${c.id}`, "🏠", "概要", "準備の進み具合を見る"],
-                [`/cases/${c.id}?tab=quotes`, "💰", "お見積り・支払い", "金額とお支払い予定の確認"],
+                [`/cases/${c.id}?tab=money`, "💰", "お見積り・支払い", "金額とお支払い予定の確認"],
                 [`/cases/${c.id}?tab=rundown`, "📋", "当日の流れ", "進行スケジュールの確認"],
-                [`/cases/${c.id}?tab=songs`, "🎵", "楽曲をえらぶ", "おすすめから視聴して決定"],
+                [`/cases/${c.id}?tab=rundown#songs`, "🎵", "楽曲をえらぶ", "おすすめから視聴して決定"],
                 [`/cases/${c.id}?tab=seating`, "🪑", "席次表・ゲスト", "ゲスト登録と席の編集"],
                 [`/cases/${c.id}?tab=chat`, "💬", "チャット", "プランナーに相談・連絡"],
                 ["/survey", "📝", "ヒヤリング", "ご希望を教えてください"],
@@ -217,7 +217,7 @@ export default async function DashboardPage() {
           <div className="card-h">💴 未入金アラート<span className="pill red">{d.unpaidInvoices.length}件・計 {yen(d.unpaidInvoices.reduce((s2, i) => s2 + i.amount, 0))}</span></div>
           <div className="card-b">
             {d.unpaidInvoices.map((i) => (
-              <Link className="list-row" key={i.id} href={`/cases/${i.caseId}?tab=billing`}>
+              <Link className="list-row" key={i.id} href={`/cases/${i.caseId}?tab=money#billing`}>
                 <span className="dot" style={{ background: i.overdue ? "var(--red)" : "var(--amber)" }} />
                 <div className="t">
                   <b>{i.caseLabel}　{i.number}</b>
@@ -352,7 +352,7 @@ export default async function DashboardPage() {
           <div className="card-b">
             {d.orderSummary.length === 0 && <div className="empty">発注はありません</div>}
             {d.orderSummary.map((o) => (
-              <Link className="list-row" key={o.caseId} href={`/cases/${o.caseId}?tab=orders`}>
+              <Link className="list-row" key={o.caseId} href={`/cases/${o.caseId}?tab=money#orders`}>
                 <div className="t">
                   <b>{o.label}</b>
                   <span>{o.done}/{o.total} 確定</span>

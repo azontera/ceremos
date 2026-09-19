@@ -123,6 +123,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .list-row .t span{font-size:11.5px;color:var(--text3)}
 .time-tag{font-size:11.5px;font-weight:700;color:var(--accent-text);background:var(--accent-soft);border-radius:8px;padding:3px 8px;flex-shrink:0;font-variant-numeric:tabular-nums}
 .section-h{display:flex;align-items:center;gap:12px;margin:6px 0 14px}
+.section-h[id],[id="account"]{scroll-margin-top:72px} /* タブ内アンカー：固定トップバーの下に隠れない */
 .section-h h2{font-size:15px;font-weight:700}
 .empty{color:var(--text3);font-size:12.5px;text-align:center;padding:24px}
 
@@ -145,26 +146,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .tabs-meta-date{color:var(--text3)}
 .tabs-meta-progress{display:flex;align-items:center;gap:6px;min-width:96px}
 
-/* セクションの要約カード＋モーダル（案件詳細ページ：全展開ではなく開閉式にする） */
-.section-summary-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:20px 0}
-.section-summary-card{display:flex;flex-direction:column;gap:10px;padding:16px 18px;position:relative;cursor:pointer;transition:box-shadow .15s,border-color .15s}
-.section-summary-card:hover{box-shadow:var(--shadow-lg);border-color:var(--accent)}
-.section-summary-card .ss-head{display:flex;align-items:center;gap:10px}
-.section-summary-card .ss-icon{font-size:20px;width:28px;text-align:center;flex-shrink:0}
-.section-summary-card .ss-title{font-weight:700;font-size:14px}
-.section-summary-card .ss-hint{font-size:12px;color:var(--text3);line-height:1.6}
-.ss-preview-pop{
-  position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
-  z-index:45;width:380px;height:250px;overflow:hidden;border-radius:12px;
-  border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-lg);
-  cursor:pointer;
-}
-.ss-preview-pop::after{
-  content:"クリックで開く";position:absolute;left:0;right:0;bottom:0;
-  font-size:11px;color:var(--text3);background:linear-gradient(transparent,var(--surface) 70%);
-  text-align:center;padding:14px 0 4px;
-}
-.ss-preview-inner{width:960px;transform:scale(.4);transform-origin:top left;pointer-events:none;padding:14px}
 .modal-overlay{position:fixed;inset:0;background:rgba(20,15,10,.45);z-index:80;display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px;overflow-y:auto}
 .modal-panel{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-lg);width:100%;max-width:960px;margin:auto;max-height:92vh;display:flex;flex-direction:column}
 .modal-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;z-index:1}
@@ -539,7 +520,7 @@ a.list-row:hover{background:var(--surface2)}
   .mnav-item{
     display:flex;flex-direction:column;align-items:center;gap:2px;
     font-size:10px;font-weight:600;color:var(--text2);
-    min-width:56px;padding:6px 8px;border-radius:12px;border:none;background:none;
+    flex:1 1 0;min-width:0;padding:6px 2px;border-radius:12px;border:none;background:none;white-space:nowrap; /* お客様は5項目＋メニューの6つを1行に収める */
     text-decoration:none;cursor:pointer;
   }
   .mnav-item.active{color:var(--accent-text);background:var(--accent-soft)}

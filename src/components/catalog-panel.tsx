@@ -87,7 +87,7 @@ export function CatalogPanel({
         {isCouple
           ? <>価格は<b>定価</b>での追加となります。値引き・特典はプランナーが確定時に調整いたします。</>
           : <>お客様は定価でのみ追加できます。<b>値引きは見積タブの編集</b>（単価変更・値引行の追加）で行ってください。</>}
-        <Link href={`/cases/${caseId}?tab=quotes`} style={{ marginLeft: 6 }}>→ 見積カードを見る</Link>
+        <Link href="#quotes" style={{ marginLeft: 6 }}>→ 見積カードを見る</Link>
       </div>
       {msg && <div style={{ background: "#e8f3ea", border: "1px solid #3d8a5f", color: "#2c6a48", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, marginBottom: 10 }}>{msg}</div>}
       {err && <div className="form-err" style={{ marginBottom: 10 }}>{err}</div>}

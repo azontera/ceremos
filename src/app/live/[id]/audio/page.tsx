@@ -12,7 +12,7 @@ export default async function AudioLivePage({ params }: { params: { id: string }
   const s = await getSession();
   if (!s) redirect("/login");
   if (!(await canAccessCase(s, params.id))) redirect("/cases");
-  if (!can(s.role, "live", "edit")) redirect(`/cases/${params.id}?tab=songs`); // お客様は操作不可
+  if (!can(s.role, "live", "edit")) redirect(`/cases/${params.id}?tab=rundown#songs`); // お客様は操作不可
 
   const c = await prisma.case.findUnique({
     where: { id: params.id },

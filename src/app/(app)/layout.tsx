@@ -69,18 +69,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         )}
         {["admin", "manager", "planner"].includes(s.role) && (
           <>
-            <Link href="/reports" className="nav-item" title="成果">
-              <span aria-hidden>📊</span><span className="nav-label">成果</span>
+            <Link href="/customers" className="nav-item" title="顧客">
+              <span aria-hidden>💐</span><span className="nav-label">顧客</span>
             </Link>
-            <div className="navlabel">マスタ・管理</div>
-            <Link href="/customers" className="nav-item" title="顧客マスタ">
-              <span aria-hidden>💐</span><span className="nav-label">顧客マスタ</span>
+            <div className="navlabel">管理</div>
+            <Link href="/admin/templates" className="nav-item" title="テンプレート">
+              <span aria-hidden>📄</span><span className="nav-label">テンプレート</span>
             </Link>
             <Link href="/admin/catalog" className="nav-item" title="カタログ管理">
               <span aria-hidden>🛍</span><span className="nav-label">カタログ管理</span>
-            </Link>
-            <Link href="/admin/templates" className="nav-item" title="テンプレート">
-              <span aria-hidden>📄</span><span className="nav-label">テンプレート</span>
             </Link>
             {s.role === "admin" && (
               <>
@@ -93,11 +90,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <Link href="/admin/settings" className="nav-item" title="設定">
                   <span aria-hidden>⚙️</span><span className="nav-label">設定</span>
                 </Link>
-                <Link href="/admin/audit" className="nav-item" title="操作履歴">
+                <Link href="/admin/audit" className="nav-item" title="操作履歴（監査）">
                   <span aria-hidden>🕐</span><span className="nav-label">操作履歴</span>
                 </Link>
               </>
             )}
+            <div className="navlabel">分析</div>
+            <Link href="/reports" className="nav-item" title="成果">
+              <span aria-hidden>📊</span><span className="nav-label">成果</span>
+            </Link>
           </>
         )}
         <div className="spacer" />

@@ -57,7 +57,7 @@ export async function GET() {
     })),
     ...unpaid.map((i) => ({
       kind: "invoice", label: `💴 未入金（期限超過）：${i.number}`,
-      sub: i.case.groomName, href: `/cases/${i.caseId}?tab=billing`,
+      sub: i.case.groomName, href: `/cases/${i.caseId}?tab=money#billing`,
     })),
   ];
 
