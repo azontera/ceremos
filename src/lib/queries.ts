@@ -18,8 +18,11 @@ export async function getDashboard(s: Session) {
     await prisma.case.findMany({ where: scope, select: { id: true } })
   ).map((c) => c.id);
   const inScope = { caseId: { in: scopedCaseIds } };
+  const caseLabel = (c: { groomName: string; brideName: string }) =>
+    `${c.groomName.split(" ")[0]}様${c.brideName !== "―" ? `・${c.brideName.split(" ")[0]}様` : ""}`;
 
-  const [todayEvents, weekList, openTasks, draftQuotes, orders, recentMessages, unpaidInvoices] =
+  // スタッフのダッシュボードに必要なものだけ：今日・今週の案件／タスク／見積下書き／未入金／未対応クレーム
+  const [todayEvents, weekList, openTasks, draftQuotes, unpaidInvoices, openClaims] =
     await Promise.all([
       prisma.calendarEvent.findMany({
         where: { ...inScope, startsAt: { gte: today.from, lt: today.to } },
@@ -35,19 +38,13 @@ export async function getDashboard(s: Session) {
         where: { ...inScope, status: "open" },
         include: { case: { select: { id: true, groomName: true, brideName: true } } },
         orderBy: { dueAt: "asc" },
-        take: 8,
+        take: 12,
       }),
-      prisma.quote.count({ where: { ...inScope, status: "draft" } }),
-      prisma.order.findMany({ where: inScope, include: { case: true } }),
-      prisma.chatMessage.findMany({
-        where: { ...inScope, NOT: { senderId: s.userId } },
-        include: {
-          sender: { select: { name: true, role: true } },
-          case: { select: { id: true, groomName: true, brideName: true } },
-          reads: { where: { userId: s.userId } },
-        },
+      // 下書き中の見積（案件ごとに最新版）
+      prisma.quote.findMany({
+        where: { ...inScope, status: "draft" },
+        include: { case: { select: { id: true, groomName: true, brideName: true, weddingDate: true } } },
         orderBy: { createdAt: "desc" },
-        take: 6,
       }),
       // 未入金（請求済で入金待ち）
       prisma.invoice.findMany({
@@ -55,50 +52,36 @@ export async function getDashboard(s: Session) {
         include: { case: { select: { id: true, groomName: true, brideName: true } } },
         orderBy: { dueAt: "asc" },
       }),
+      // 未対応クレーム（アフター記録）— 顧客ロールには出さない
+      s.role === "couple" ? Promise.resolve([]) : prisma.followUp.findMany({
+        where: { ...inScope, type: "claim", status: "open" },
+        include: { case: { select: { id: true, groomName: true, brideName: true } } },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
-
-  // 未対応クレーム（アフター記録）— 顧客ロールには出さない
-  const openClaims = s.role === "couple" ? [] : await prisma.followUp.findMany({
-    where: { ...inScope, type: "claim", status: "open" },
-    include: { case: { select: { id: true, groomName: true, brideName: true } } },
-    orderBy: { createdAt: "desc" },
-  });
 
   const todayWeddings = await prisma.case.findMany({
     where: { ...scope, weddingDate: { gte: today.from, lt: today.to } },
     include: { banquetVenue: true },
   });
 
-  // 案件ごとの発注確定状況
-  const orderSummary = new Map<string, { label: string; total: number; done: number; overdue: boolean }>();
-  for (const o of orders) {
-    const key = o.caseId;
-    const e = orderSummary.get(key) ?? {
-      label: `${o.case.groomName.split(" ")[0]}様・${o.case.brideName.split(" ")[0]}様`,
-      total: 0, done: 0, overdue: false,
-    };
-    e.total++;
-    if (o.status !== "pending") e.done++;
-    if (o.status === "pending" && o.dueAt && o.dueAt < now) e.overdue = true;
-    orderSummary.set(key, e);
+  // 見積下書きは案件単位にまとめる（同じ案件の複数版は1行）
+  const draftByCase = new Map<string, { caseId: string; caseLabel: string; weddingDate: Date; version: number; total: number }>();
+  for (const q of draftQuotes) {
+    if (!draftByCase.has(q.caseId)) {
+      draftByCase.set(q.caseId, { caseId: q.caseId, caseLabel: caseLabel(q.case), weddingDate: q.case.weddingDate, version: q.version, total: q.total });
+    }
   }
 
   return {
-    todayEvents, todayWeddings, weekWeddings: weekList.length, weekList, openTasks, draftQuotes,
+    todayEvents, todayWeddings, weekWeddings: weekList.length, weekList, openTasks,
+    draftQuotes: [...draftByCase.values()],
     openClaims: openClaims.map((f) => ({
-      id: f.id, caseId: f.caseId, body: f.body, at: f.createdAt,
-      caseLabel: `${f.case.groomName.split(" ")[0]}様${f.case.brideName !== "―" ? `・${f.case.brideName.split(" ")[0]}様` : ""}`,
+      id: f.id, caseId: f.caseId, body: f.body, at: f.createdAt, caseLabel: caseLabel(f.case),
     })),
     unpaidInvoices: unpaidInvoices.map((i) => ({
       id: i.id, caseId: i.caseId, number: i.number, amount: i.amount,
-      dueAt: i.dueAt, overdue: !!i.dueAt && i.dueAt < now,
-      caseLabel: `${i.case.groomName.split(" ")[0]}様${i.case.brideName !== "―" ? `・${i.case.brideName.split(" ")[0]}様` : ""}`,
-    })),
-    orderSummary: [...orderSummary.entries()].map(([caseId, v]) => ({ caseId, ...v })),
-    recentMessages: recentMessages.map((m) => ({
-      id: m.id, body: m.body, sender: m.sender.name, caseId: m.case.id,
-      caseLabel: `${m.case.groomName.split(" ")[0]}様・${m.case.brideName.split(" ")[0]}様`,
-      unread: m.reads.length === 0, at: m.createdAt,
+      dueAt: i.dueAt, overdue: !!i.dueAt && i.dueAt < now, caseLabel: caseLabel(i.case),
     })),
   };
 }

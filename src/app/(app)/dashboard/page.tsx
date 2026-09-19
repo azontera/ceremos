@@ -10,7 +10,7 @@ import { cleanupExpiredSongMedia } from "@/lib/cleanup";
 import { resolveCoupleSide } from "@/lib/couple-side";
 import { t as term, isBridal } from "@/lib/terms";
 
-// お客様専用ホーム：概要・楽曲・席次表・チャット・ヒヤリングへの入り口
+// お客様専用ホーム：「今やること」＋4タブ（お見積り／席次／当日の流れ／連絡）とヒヤリングへの入り口
 async function CustomerHome({ userId, name }: { userId: string; name: string }) {
   const me = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, profileJson: true } });
   const memberships = await prisma.caseMember.findMany({
@@ -72,7 +72,7 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
           ...c.tasks.map((tk) => ({
             icon: "📌", title: tk.title,
             desc: tk.dueAt ? `期限：${tk.dueAt.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}` : "プランナーからの宿題です",
-            href: `/cases/${c.id}`,
+            href: `/cases/${c.id}?tab=chat`,
             urgent: !!tk.dueAt && tk.dueAt < new Date(Date.now() + 3 * 86400000),
           })),
           ...(latestQuote?.status === "draft" ? [{
@@ -87,6 +87,11 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
           ...(c.songs.filter((sg) => sg.title && sg.title !== "（曲未定）").length < 5 && c.rundownItems.length > 0 ? [{
             icon: "🎵", title: "楽曲をえらぶ", desc: "おすすめから視聴して決められます",
             href: `/cases/${c.id}?tab=rundown#songs`,
+          }] : []),
+          ...(nextMeeting ? [{
+            icon: "📅", title: `次回お打ち合わせ：${nextMeeting.toLocaleString("ja-JP", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" })}`,
+            desc: "ご質問・ご相談は💬連絡からどうぞ",
+            href: `/cases/${c.id}?tab=chat`,
           }] : []),
         ];
         return (
@@ -133,15 +138,13 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
               ))}
             </div>
 
-            {/* やることメニュー（PCのみ。スマホは下部ナビ＋☰メニューに集約し、重複導線を出さない） */}
+            {/* クイックリンク（PCのみ。スマホは下部ナビ＝同じ並びに集約し、重複導線を出さない） */}
             <div className="pc-only" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, marginTop: 16 }}>
               {([
-                [`/cases/${c.id}`, "🏠", "概要", "準備の進み具合を見る"],
-                [`/cases/${c.id}?tab=money`, "💰", "お見積り・支払い", "金額とお支払い予定の確認"],
-                [`/cases/${c.id}?tab=rundown`, "📋", "当日の流れ", "進行スケジュールの確認"],
-                [`/cases/${c.id}?tab=rundown#songs`, "🎵", "楽曲をえらぶ", "おすすめから視聴して決定"],
-                [`/cases/${c.id}?tab=seating`, "🪑", "席次表・ゲスト", "ゲスト登録と席の編集"],
-                [`/cases/${c.id}?tab=chat`, "💬", "チャット", "プランナーに相談・連絡"],
+                [`/cases/${c.id}?tab=money`, "💰", "お見積り", "金額・お支払い予定・カタログ"],
+                [`/cases/${c.id}?tab=seating`, "🪑", "席次", `${term("guests", c.caseType)}の登録と席の編集`],
+                [`/cases/${c.id}?tab=rundown`, "📋", "当日の流れ", "進行スケジュールと楽曲"],
+                [`/cases/${c.id}?tab=chat`, "💬", "連絡", "プランナーに相談・連絡"],
                 ["/survey", "📝", "ヒヤリング", "ご希望を教えてください"],
               ] as [string, string, string, string][]).map(([href, icon, label, desc]) => (
                 <Link key={label} href={href} className="card" style={{ padding: "14px 12px", textAlign: "center", textDecoration: "none" }}>
@@ -180,7 +183,13 @@ export default async function DashboardPage() {
   const needSetup = s.role === "admin" ? (await prisma.venue.count()) === 0 : false;
   const now = new Date();
   const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
+  const md = (x: Date | string) => new Date(x).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
+  const nameOf = (c: { groomName: string; brideName: string }) => c.brideName === "―" ? c.groomName : `${c.groomName} & ${c.brideName}`;
+  const overdueTasks = d.openTasks.filter((t) => t.dueAt && new Date(t.dueAt) < now);
+  const weekTasks = d.openTasks.filter((t) => !t.dueAt || new Date(t.dueAt) >= now);
+  const unpaidTotal = d.unpaidInvoices.reduce((s2, i) => s2 + i.amount, 0);
 
+  // スタッフのホーム：①今日・今週の案件 ②タスク ③見積下書き・未入金 ④未対応クレーム だけ
   return (
     <>
       {/* 初期セットアップ案内（会場マスタが空の管理者に表示） */}
@@ -192,7 +201,8 @@ export default async function DashboardPage() {
           </span>
         </Link>
       )}
-      {/* 未対応クレーム */}
+
+      {/* ④ 未対応クレーム（あるときだけ最上段） */}
       {d.openClaims.length > 0 && (
         <div className="card" style={{ marginBottom: 16, border: "1.5px solid var(--red, #c14b4b)" }}>
           <div className="card-h">🚨 未対応のクレーム<span className="pill red">{d.openClaims.length}件</span></div>
@@ -211,51 +221,38 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* 未入金アラート */}
-      {d.unpaidInvoices.length > 0 && (
-        <div className="card" style={{ marginBottom: 16, border: "1.5px solid var(--red, #c14b4b)" }}>
-          <div className="card-h">💴 未入金アラート<span className="pill red">{d.unpaidInvoices.length}件・計 {yen(d.unpaidInvoices.reduce((s2, i) => s2 + i.amount, 0))}</span></div>
-          <div className="card-b">
-            {d.unpaidInvoices.map((i) => (
-              <Link className="list-row" key={i.id} href={`/cases/${i.caseId}?tab=money#billing`}>
-                <span className="dot" style={{ background: i.overdue ? "var(--red)" : "var(--amber)" }} />
-                <div className="t">
-                  <b>{i.caseLabel}　{i.number}</b>
-                  <span>{i.dueAt ? `支払期日：${new Date(i.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}${i.overdue ? "（超過）" : ""}` : "期日未設定"}</span>
-                </div>
-                <b style={{ color: i.overdue ? "var(--red)" : undefined }}>{yen(i.amount)}</b>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 件数サマリー */}
       <div className="grid cols-4">
-        <div className="card kpi">
+        <a className="card kpi" href="#today" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="k-label">本日の開催</div>
           <div className="k-val">{d.todayWeddings.length}<span style={{ fontSize: 14, color: "var(--text3)" }}> 件</span></div>
           <div className="k-sub">{d.todayWeddings.map((w) => w.banquetVenue?.name).filter(Boolean).join("・") || "—"}</div>
-        </div>
-        <div className="card kpi">
+        </a>
+        <a className="card kpi" href="#week" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="k-label">今週の開催</div>
           <div className="k-val">{d.weekWeddings}<span style={{ fontSize: 14, color: "var(--text3)" }}> 件</span></div>
           <div className="k-sub">今日から7日間</div>
-        </div>
-        <div className="card kpi">
+        </a>
+        <a className="card kpi" href="#tasks" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="k-label">未処理タスク</div>
-          <div className="k-val" style={{ color: d.openTasks.length ? "var(--red)" : undefined }}>{d.openTasks.length}</div>
-          <div className="k-sub">
-            期限超過 {d.openTasks.filter((t) => t.dueAt && new Date(t.dueAt) < now).length}件
+          <div className="k-val" style={{ color: overdueTasks.length ? "var(--red)" : undefined }}>{d.openTasks.length}</div>
+          <div className="k-sub">期限超過 {overdueTasks.length}件</div>
+        </a>
+        <a className="card kpi" href="#money" style={{ textDecoration: "none", color: "inherit" }}>
+          <div className="k-label">見積 下書き中 ／ 未入金</div>
+          <div className="k-val">
+            <span style={{ color: d.draftQuotes.length ? "var(--amber)" : undefined }}>{d.draftQuotes.length}</span>
+            <span style={{ fontSize: 14, color: "var(--text3)" }}> 件 ／ </span>
+            <span style={{ color: d.unpaidInvoices.length ? "var(--red)" : undefined }}>{d.unpaidInvoices.length}</span>
+            <span style={{ fontSize: 14, color: "var(--text3)" }}> 件</span>
           </div>
-        </div>
-        <div className="card kpi">
-          <div className="k-label">見積 下書き中</div>
-          <div className="k-val" style={{ color: d.draftQuotes ? "var(--amber)" : undefined }}>{d.draftQuotes}</div>
-          <div className="k-sub">確定前の見積バージョン</div>
-        </div>
+          <div className="k-sub">{d.unpaidInvoices.length ? `未入金 計 ${yen(unpaidTotal)}` : "未入金なし"}</div>
+        </a>
       </div>
 
+      {/* ① 今日・今週の案件 */}
       <div className="grid cols-2" style={{ marginTop: 16 }}>
-        <div className="card">
+        <div className="card" id="today">
           <div className="card-h">今日の予定</div>
           <div className="card-b">
             {d.todayEvents.length === 0 && <div className="empty">本日の予定はありません</div>}
@@ -268,7 +265,7 @@ export default async function DashboardPage() {
                   </span>
                   <div className="t">
                     <b>{e.title}</b>
-                    <span>{e.case ? `${e.case.groomName} & ${e.case.brideName}` : ""}</span>
+                    <span>{e.case ? nameOf(e.case) : ""}</span>
                   </div>
                   <span className={`pill ${p.cls}`}>{p.label}</span>
                 </>
@@ -280,8 +277,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-h">今週の開催<span className="pill accent">{d.weekList.length}件</span></div>
+        <div className="card" id="week">
+          <div className="card-h">今週の開催<span className="pill accent">{d.weekList.length}件</span><Link className="more" href="/calendar">カレンダー →</Link></div>
           <div className="card-b">
             {d.weekList.length === 0 && <div className="empty">今週の開催はありません</div>}
             {d.weekList.map((w) => {
@@ -290,10 +287,9 @@ export default async function DashboardPage() {
                 <Link className="list-row" key={w.id} href={`/cases/${w.id}`}>
                   <span className={`dday ${dd.cls}`}>{dd.text}</span>
                   <div className="t">
-                    <b>{w.brideName === "―" ? w.groomName : `${w.groomName} & ${w.brideName}`}</b>
+                    <b>{nameOf(w)}</b>
                     <span>
-                      {new Date(w.weddingDate).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" })}
-                      　{w.banquetVenue?.name ?? w.venueFree ?? "会場未定"}・{timeRangeLabel(new Date(w.weddingDate), w.endTime)}・{w.guestCount}名
+                      {md(w.weddingDate)}　{w.banquetVenue?.name ?? w.venueFree ?? "会場未定"}・{timeRangeLabel(new Date(w.weddingDate), w.endTime)}・{w.guestCount}名
                     </span>
                   </div>
                   <span style={{ color: "var(--text3)" }}>→</span>
@@ -304,12 +300,13 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* ② タスク ③ 見積下書き・未入金 */}
       <div className="grid cols-2" style={{ marginTop: 16 }}>
-        <div className="card">
-          <div className="card-h">やることリスト</div>
+        <div className="card" id="tasks">
+          <div className="card-h">タスク<span className={`pill ${overdueTasks.length ? "red" : "gray"}`}>期限超過 {overdueTasks.length}</span></div>
           <div className="card-b">
             {d.openTasks.length === 0 && <div className="empty">未処理タスクはありません</div>}
-            {d.openTasks.map((t) => {
+            {[...overdueTasks, ...weekTasks].map((t) => {
               const overdue = t.dueAt && new Date(t.dueAt) < now;
               const inner = (
                 <>
@@ -317,49 +314,44 @@ export default async function DashboardPage() {
                   <div className="t">
                     <b>{t.title}</b>
                     <span>
-                      {t.dueAt ? `期限：${new Date(t.dueAt).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}${overdue ? "（超過）" : ""}` : "期限なし"}
-                      {t.case ? ` ｜ ${t.case.groomName} & ${t.case.brideName}` : ""}
+                      {t.dueAt ? `期限：${md(t.dueAt)}${overdue ? "（超過）" : ""}` : "期限なし"}
+                      {t.case ? ` ｜ ${nameOf(t.case)}` : ""}
                     </span>
                   </div>
                 </>
               );
               return t.case
-                ? <Link className="list-row" key={t.id} href={`/cases/${t.case.id}`}>{inner}</Link>
+                ? <Link className="list-row" key={t.id} href={`/cases/${t.case.id}?tab=info#tasks`}>{inner}</Link>
                 : <div className="list-row" key={t.id}>{inner}</div>;
             })}
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-h">新着チャット</div>
+        <div className="card" id="money">
+          <div className="card-h">見積 下書き中<span className={`pill ${d.draftQuotes.length ? "amber" : "gray"}`}>{d.draftQuotes.length}件</span></div>
           <div className="card-b">
-            {d.recentMessages.length === 0 && <div className="empty">メッセージはありません</div>}
-            {d.recentMessages.map((m) => (
-              <Link href={`/cases/${m.caseId}?tab=chat`} className="list-row" key={m.id}>
-                <div className="avatar" style={{ background: "var(--accent)" }}>{m.sender.charAt(0)}</div>
+            {d.draftQuotes.length === 0 && <div className="empty">下書き中の見積はありません</div>}
+            {d.draftQuotes.map((q) => (
+              <Link className="list-row" key={q.caseId} href={`/cases/${q.caseId}?tab=money`}>
                 <div className="t">
-                  <b>{m.sender}（{m.caseLabel}）</b>
-                  <span>{m.body}</span>
+                  <b>{q.caseLabel}　v{q.version}</b>
+                  <span>開催 {md(q.weddingDate)}</span>
                 </div>
-                <span className={`pill ${m.unread ? "accent" : "gray"}`}>{m.unread ? "未読" : "既読"}</span>
+                <b>{yen(q.total)}</b>
               </Link>
             ))}
           </div>
-        </div>
-
-        <div className="card">
-          <div className="card-h">発注状況<Link className="more" href="/cases">案件一覧 →</Link></div>
+          <div className="card-h" style={{ borderTop: "1px solid var(--border)" }}>未入金<span className={`pill ${d.unpaidInvoices.length ? "red" : "gray"}`}>{d.unpaidInvoices.length}件{d.unpaidInvoices.length ? `・計 ${yen(unpaidTotal)}` : ""}</span></div>
           <div className="card-b">
-            {d.orderSummary.length === 0 && <div className="empty">発注はありません</div>}
-            {d.orderSummary.map((o) => (
-              <Link className="list-row" key={o.caseId} href={`/cases/${o.caseId}?tab=money#orders`}>
+            {d.unpaidInvoices.length === 0 && <div className="empty">未入金はありません</div>}
+            {d.unpaidInvoices.map((i) => (
+              <Link className="list-row" key={i.id} href={`/cases/${i.caseId}?tab=money#billing`}>
+                <span className="dot" style={{ background: i.overdue ? "var(--red)" : "var(--amber)" }} />
                 <div className="t">
-                  <b>{o.label}</b>
-                  <span>{o.done}/{o.total} 確定</span>
+                  <b>{i.caseLabel}　{i.number}</b>
+                  <span>{i.dueAt ? `支払期日：${md(i.dueAt)}${i.overdue ? "（超過）" : ""}` : "期日未設定"}</span>
                 </div>
-                <span className={`pill ${o.overdue ? "red" : o.done === o.total ? "green" : "amber"}`}>
-                  {o.overdue ? "要対応" : o.done === o.total ? "完了" : "進行中"}
-                </span>
+                <b style={{ color: i.overdue ? "var(--red)" : undefined }}>{yen(i.amount)}</b>
               </Link>
             ))}
           </div>
