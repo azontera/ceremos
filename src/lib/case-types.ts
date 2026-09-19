@@ -54,3 +54,12 @@ export function mergeCaseTypes(options: [string, string][]): CaseTypeMeta[] {
 export function caseLabel(c: { groomName: string; brideName: string }): string {
   return c.brideName === "―" || !c.brideName ? c.groomName : `${c.groomName} & ${c.brideName}`;
 }
+
+/** 失注理由（成果ダッシュボードで理由別に集計） */
+export const LOST_REASONS: [string, string][] = [
+  ["price", "価格"],
+  ["schedule", "日程が合わない"],
+  ["competitor", "他会場に決定"],
+  ["atmosphere", "雰囲気・相性"],
+  ["other", "その他"],
+];

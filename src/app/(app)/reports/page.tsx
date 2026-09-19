@@ -1,10 +1,10 @@
 // 成果ダッシュボード（リニューアル仕様書 2.5・P5）
-// プランナー個人別の成約率・平均単価と、失注理由・失注ステップのボトルネック可視化。
+// プランナー個人別の成約率・平均単価と、失注理由の可視化。
 // データは案件・見積・失注記録から集計（スタッフのみ閲覧可）。
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { salesStepDefs, LOST_REASONS } from "@/lib/sales-steps";
+import { LOST_REASONS } from "@/lib/case-types";
 
 export const dynamic = "force-dynamic";
 
@@ -38,15 +38,12 @@ export default async function ReportsPage() {
   }
   const planners = [...byPlanner.values()].sort((a, b) => b.won - a.won);
 
-  // 失注理由・ステップ別
+  // 失注理由別
   const lostCases = cases.filter((c) => c.status === "lost");
   const reasonCount = new Map<string, number>();
-  const stepCount = new Map<string, number>();
   for (const c of lostCases) {
     if (c.lostReason) reasonCount.set(c.lostReason, (reasonCount.get(c.lostReason) ?? 0) + 1);
-    if (c.lostStep) stepCount.set(c.lostStep, (stepCount.get(c.lostStep) ?? 0) + 1);
   }
-  const stepLabels = new Map(salesStepDefs("wedding").map((d) => [d.key, `${d.emoji} ${d.label}`]));
   const reasonLabels = new Map(LOST_REASONS);
 
   const totalWon = planners.reduce((a, p) => a + p.won, 0);
@@ -111,22 +108,6 @@ export default async function ReportsPage() {
                   <b style={{ marginLeft: 8 }}>{n}件</b>
                 </div>
               ))}
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-h">🪜 どのステップで失注しているか</div>
-            <div className="card-b">
-              {stepCount.size === 0 && <div className="empty">失注ステップの記録はありません</div>}
-              {[...stepCount.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => (
-                <div className="list-row" key={k}>
-                  <div className="t"><b>{stepLabels.get(k) ?? k}</b></div>
-                  {bar(n, lostCases.length)}
-                  <b style={{ marginLeft: 8 }}>{n}件</b>
-                </div>
-              ))}
-              <p style={{ fontSize: 11, color: "var(--text3)", margin: "8px 0 0" }}>
-                💡 特定ステップに失注が偏っている場合は、そのステップの「トーク」「チェック」（案件ページ左の商談ステップナビ）を見直しましょう。
-              </p>
             </div>
           </div>
         </div>

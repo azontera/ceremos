@@ -29,20 +29,6 @@ function sceneForItemTitle(title: string): string {
   return "party";
 }
 
-// ===== 好み診断（10問）：おすすめ選曲の精度を上げる =====
-const QUIZ: { key: string; q: string; opts: [string, string][] }[] = [
-  { key: "mood", q: "1. おふたりの披露宴の雰囲気は？", opts: [["formal", "フォーマル・上品に"], ["casual", "カジュアル・アットホーム"], ["natural", "ナチュラル"], ["gorgeous", "華やか・盛り上げ重視"]] },
-  { key: "lang", q: "2. 邦楽と洋楽、どちらが好き？", opts: [["jp", "邦楽多め"], ["en", "洋楽多め"], ["mix", "半々でバランスよく"]] },
-  { key: "generation", q: "3. よく聴く音楽の世代は？", opts: [["teen20", "最近の曲（10〜20代向け）"], ["30s", "2005〜2015年頃"], ["40s", "90年代〜2000年代"], ["wide", "幅広く・ゲストに合わせたい"]] },
-  { key: "standard", q: "4. 定番曲についてどう思う？", opts: [["teiban", "ど定番で安心したい"], ["balance", "定番＋少し個性"], ["unique", "人と被りたくない"]] },
-  { key: "tempo", q: "5. テンポの好みは？", opts: [["up", "アップテンポ多め"], ["ballad", "バラード多め"], ["balance", "バランスよく"]] },
-  { key: "classic", q: "6. クラシック（カノン等）は使いたい？", opts: [["yes", "積極的に使いたい"], ["chapel_only", "挙式だけ使いたい"], ["no", "使わない"]] },
-  { key: "genre", q: "7. 好きなジャンルに近いのは？", opts: [["jpop", "J-POP"], ["rock", "ロック・バンド"], ["rnb", "R&B・ソウル"], ["jazz_classic", "ジャズ・クラシック"]] },
-  { key: "dupArtist", q: "8. 同じアーティストの曲が複数あるのは？", opts: [["ok", "好きなら全然OK"], ["avoid", "できれば避けたい"]] },
-  { key: "lyrics", q: "9. 感動シーン（手紙・中座）の歌詞は？", opts: [["jp_lyrics", "日本語詞でしっかり伝えたい"], ["any", "歌詞は気にしない"]] },
-  { key: "flashy", q: "10. 派手な演出曲（EDM・クラブ系）は？", opts: [["ok", "盛り上がるなら大歓迎"], ["avoid", "落ち着いた選曲がいい"]] },
-];
-
 /** YouTube URL → 埋め込みID */
 function youtubeId(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,20})/);
@@ -84,7 +70,7 @@ export function SongsPanel({
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  // おすすめ10曲＋好み診断
+  // おすすめ10曲＋好みのアーティスト
   const [suggestFor, setSuggestFor] = useState<string | null>(null); // songId
   const [suggests, setSuggests] = useState<{ title: string; artist: string; memo?: string }[]>([]);
   const [suggestBusy, setSuggestBusy] = useState(false);
@@ -94,26 +80,26 @@ export function SongsPanel({
   const [dbSearchMode, setDbSearchMode] = useState(false); // 検索結果表示中か
   const [previewVid, setPreviewVid] = useState<{ key: string; id: string } | null>(null);
   const [ytBusy, setYtBusy] = useState<string | null>(null);
-  const [quizOpen, setQuizOpen] = useState(false);
-  const [quiz, setQuiz] = useState<Record<string, string>>({});
-  const [hasPrefs, setHasPrefs] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const [prefs, setPrefs] = useState<{ groomArtists?: string; brideArtists?: string }>({});
+  const hasPrefs = !!(prefs.groomArtists?.trim() || prefs.brideArtists?.trim());
 
-  // 好み診断の読み込み（初回）
+  // 好みのアーティスト（初回読み込み）
   useEffect(() => {
     fetch(`/api/v1/cases/${caseId}/music-prefs`)
       .then((r) => r.json())
-      .then((d) => { if (d.prefs && Object.keys(d.prefs).length > 0) { setQuiz(d.prefs); setHasPrefs(true); } })
+      .then((d) => { if (d.prefs) setPrefs({ groomArtists: d.prefs.groomArtists ?? "", brideArtists: d.prefs.brideArtists ?? "" }); })
       .catch(() => {});
   }, [caseId]);
 
-  async function saveQuiz() {
+  async function savePrefs() {
     const res = await fetch(`/api/v1/cases/${caseId}/music-prefs`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prefs: quiz }),
+      body: JSON.stringify({ prefs }),
     });
-    if (res.ok) { setHasPrefs(true); setQuizOpen(false); }
-    else setErr("診断の保存に失敗しました");
+    if (res.ok) setPrefsOpen(false);
+    else setErr("好みのアーティストの保存に失敗しました");
   }
 
   async function loadSuggests(r: (typeof rows)[number], q = "") {
@@ -196,7 +182,7 @@ export function SongsPanel({
     location.reload(); // 新しい songId を反映
   }
 
-  // 🎲 全曲おまかせ：曲が未定のシーンすべてに好み診断を反映して自動選曲（YouTube URLも自動設定）
+  // 🎲 全曲おまかせ：曲が未定のシーンすべてに好みのアーティストを反映して自動選曲（YouTube URLも自動設定）
   const [autoBusy, setAutoBusy] = useState(false);
   const [autoProg, setAutoProg] = useState("");
   async function autoFillAll() {
@@ -208,7 +194,7 @@ export function SongsPanel({
       if (targets.length === 0) { setErr("曲枠がありません（♪全シーンに曲枠を作成 を先に実行してください）"); return; }
       if (!confirm(`全曲設定済みです。${targets.length}シーンすべての曲を新しく選び直しますか？\n（現在の曲はすべて置き換わります。あとから1曲ずつ自由に変更できます）`)) return;
       replaceAll = true;
-    } else if (!confirm(`曲が未定の${targets.length}シーンに、${hasPrefs ? "好み診断を反映して" : ""}自動で曲を割り当てます。よろしいですか？\n（あとから1曲ずつ自由に変更できます）`)) return;
+    } else if (!confirm(`曲が未定の${targets.length}シーンに、${hasPrefs ? "好みのアーティストを優先して" : ""}自動で曲を割り当てます。よろしいですか？\n（あとから1曲ずつ自由に変更できます）`)) return;
     setAutoBusy(true); setErr("");
     const usedTitles = new Set(replaceAll ? [] : rows.filter((r) => r.title).map((r) => r.title));
     const usedArtists = new Set(replaceAll ? [] : rows.filter((r) => r.artist).map((r) => r.artist));
@@ -237,7 +223,7 @@ export function SongsPanel({
     }
     setAutoBusy(false); setAutoProg("");
     router.refresh();
-    alert(`🎲 ${done}曲を自動設定しました。${hasPrefs ? "（好み診断を反映）" : "好み診断に回答するとさらに好みに寄ります。"}\n各曲は▶視聴して、気に入らなければ「おすすめ10曲」やYouTube検索で差し替えられます。`);
+    alert(`🎲 ${done}曲を自動設定しました。${hasPrefs ? "（好みのアーティストを反映）" : "好みのアーティストを登録するとさらに好みに寄ります。"}\n各曲は▶視聴して、気に入らなければ「おすすめ10曲」やYouTube検索で差し替えられます。`);
   }
 
   // 流すタイミングの保存（即時保存・進行表と再生プレイヤーにも反映）
@@ -318,11 +304,11 @@ export function SongsPanel({
     <>
       <div className="section-h songs-head" style={{ margin: "0 0 14px" }}>
         <span className="pill gray pc-only">JASRAC申請項目（曲名・アーティスト・使用時間）を保持</span>
-        {hasPrefs && <span className="pill green" title="おすすめ選曲に好みを反映中">🎯 好み反映中</span>}
+        {hasPrefs && <span className="pill green" title="おすすめ選曲に好みのアーティストを反映中">🎯 好み反映中</span>}
         <div className="pc-only" style={{ flex: 1 }} />
         {canEdit && (
-          <button className="btn" onClick={() => setQuizOpen((o) => !o)}>
-            🎯 好み診断{hasPrefs ? "を変更" : "（10問）"}
+          <button className="btn" onClick={() => setPrefsOpen((o) => !o)}>
+            🎯 好みのアーティスト{hasPrefs ? "を変更" : ""}
           </button>
         )}
         {canEdit && rows.some((r) => !r.songId) && (
@@ -333,7 +319,7 @@ export function SongsPanel({
         )}
         {canEdit && (
           <button className="btn primary" onClick={autoFillAll} disabled={autoBusy}
-            title="曲が未定のシーン全部に、好み診断を反映して自動で曲＋YouTube URLを設定します">
+            title="曲が未定のシーン全部に、好みのアーティストを反映して自動で曲＋YouTube URLを設定します">
             {autoBusy ? autoProg || "選曲中…" : "🎲 全曲おまかせ"}
           </button>
         )}
@@ -347,53 +333,30 @@ export function SongsPanel({
       </div>
       {err && <div className="form-err" style={{ marginBottom: 10 }}>{err}</div>}
 
-      {/* 好み診断（10問）：回答するとおすすめ10曲の精度が上がる */}
-      {quizOpen && (
+      {/* 好みのアーティスト：登録するとおすすめ10曲・🎲全曲おまかせが好みに寄る */}
+      {prefsOpen && (
         <div className="card" style={{ padding: 18, marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>🎯 楽曲の好み診断（10問）</div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>🎯 好みのアーティスト・曲</div>
           <p style={{ fontSize: 11.5, color: "var(--text3)", margin: "0 0 12px" }}>
-            おふたりの好みに合わせて「🎲 おすすめ10曲」の選曲が変わります。あとからいつでも変更できます。
+            登録したアーティスト・曲は「🎲 おすすめ10曲」「🎲 全曲おまかせ」で優先されます。あとからいつでも変更できます。
           </p>
-          <div style={{ display: "grid", gap: 12 }}>
-            {QUIZ.map((item) => (
-              <div key={item.key}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}>{item.q}</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {item.opts.map(([v, l]) => (
-                    <button key={v} type="button"
-                      className={`pill ${quiz[item.key] === v ? "accent" : "gray"}`}
-                      style={{ cursor: "pointer", border: "none" }}
-                      onClick={() => setQuiz((x) => ({ ...x, [item.key]: v }))}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* 好きなアーティスト・曲（自由記入）：おすすめ・おまかせ選曲を強くブースト */}
-          <div className="quiz-artists" style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginTop: 14 }}>
+          <div className="quiz-artists" style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
             <div>
               <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}>{bridal ? "🤵 新郎" : `🏢 ${term("groom", caseType)}`}の好きなアーティスト・曲</div>
-              <textarea className="form-input" rows={2} value={quiz.groomArtists ?? ""}
+              <textarea className="form-input" rows={2} value={prefs.groomArtists ?? ""}
                 placeholder="例：Mr.Children、Official髭男dism、Subtitle"
-                onChange={(e) => setQuiz((x) => ({ ...x, groomArtists: e.target.value }))} />
+                onChange={(e) => setPrefs((x) => ({ ...x, groomArtists: e.target.value }))} />
             </div>
             <div>
               <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 5 }}>{bridal ? "👰 新婦" : `👤 ${term("bride", caseType)}`}の好きなアーティスト・曲</div>
-              <textarea className="form-input" rows={2} value={quiz.brideArtists ?? ""}
+              <textarea className="form-input" rows={2} value={prefs.brideArtists ?? ""}
                 placeholder="例：YOASOBI、back number、ハナミズキ"
-                onChange={(e) => setQuiz((x) => ({ ...x, brideArtists: e.target.value }))} />
+                onChange={(e) => setPrefs((x) => ({ ...x, brideArtists: e.target.value }))} />
             </div>
           </div>
-          <p style={{ fontSize: 11, color: "var(--text3)", margin: "4px 0 0" }}>
-            💡 具体的な名前を入れるほど「おすすめ10曲」「🎲全曲おまかせ」がおふたりの好みに寄ります。
-          </p>
           <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center" }}>
-            <button className="btn primary" onClick={saveQuiz}
-              disabled={Object.keys(quiz).length < 5}>保存して選曲に反映</button>
-            <button className="btn" onClick={() => setQuizOpen(false)}>閉じる</button>
-            <span style={{ fontSize: 11, color: "var(--text3)" }}>{Object.keys(quiz).length}/10問 回答済み（5問以上で保存可）</span>
+            <button className="btn primary" onClick={savePrefs}>保存して選曲に反映</button>
+            <button className="btn" onClick={() => setPrefsOpen(false)}>閉じる</button>
           </div>
         </div>
       )}
@@ -482,7 +445,7 @@ export function SongsPanel({
                 </label>
                 {canEdit && (
                   <button className="btn sm" disabled={suggestBusy && suggestFor === r.songId}
-                    title="シーンと好み診断に合わせて定番曲から10曲提案（何度でも引き直せます）"
+                    title="シーンと好みのアーティストに合わせて定番曲から10曲提案（何度でも引き直せます）"
                     onClick={() => loadSuggests(r)}>
                     {suggestBusy && suggestFor === r.songId ? "…" : suggestFor === r.songId ? "🎲 別の10曲に更新" : "🎲 おすすめ10曲"}
                   </button>
@@ -532,7 +495,7 @@ export function SongsPanel({
                 )}
               </div>
 
-              {/* おすすめ10曲（シーン×好み診断）＋ 曲DB検索（約2万曲） */}
+              {/* おすすめ10曲（シーン×好みのアーティスト）＋ 曲DB検索（約2万曲） */}
               {suggestFor === r.songId && !suggestBusy && (
                 <div className="card song-suggest" style={{ marginTop: 8, padding: "8px 12px", maxHeight: 340, overflowY: "auto", background: "var(--surface2)" }}>
                   <div className="song-flex" style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
@@ -549,7 +512,7 @@ export function SongsPanel({
                   <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 4 }}>
                     {dbSearchMode
                       ? <>「{dbQuery}」の検索結果（{suggests.length}件）— ▶で視聴、「採用」で曲名と視聴URLが自動保存されます</>
-                      : <>「{r.itemTitle}」のシーンに合わせた提案{prefsApplied ? "（🎯 好み診断を反映）" : "（好み診断に回答するとさらに精度UP）"}
+                      : <>「{r.itemTitle}」のシーンに合わせた提案{prefsApplied ? "（🎯 好みのアーティストを反映）" : ""}
                         — ▶で視聴、「採用」で曲名と視聴URLが自動保存されます</>}
                     <button type="button" className="btn sm" style={{ marginLeft: 8 }} onClick={() => { setSuggestFor(null); setDbSearchMode(false); }}>閉じる</button>
                   </div>

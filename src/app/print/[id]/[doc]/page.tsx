@@ -7,9 +7,6 @@ import { PrintButton } from "./print-button";
 import { timeRangeLabel } from "@/lib/case-time";
 import { getSetting, getBranding } from "@/lib/settings";
 import { PrintBrand } from "@/components/print-brand";
-import { mbtiTrivia, signTrivia, elementsTrivia, enMusubi, compatGrade } from "@/lib/fortune-print";
-import type { PersonResult } from "@/lib/hearing";
-import type { StrategyData } from "@/components/strategy-panel";
 import { t } from "@/lib/terms";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +22,6 @@ const DOCS: Record<string, string> = {
   orders: "発注一覧",
   seating: "席次表",
   guests: "ご出席者リスト（受付・クローク用）",
-  fortune: "ご縁の診断書", // ヒヤリング診断の結果をお客様に渡す1枚（2人分・蘊蓄つき）
 };
 
 function sceneForTitle(title: string): string | null {
@@ -95,12 +91,6 @@ export default async function PrintPage({
 
   const doc = params.doc;
   const title = DOCS[doc];
-  // 🔮 診断書：ヒヤリング結果（診断・相性）を印刷用に取り出す
-  let fortune: (Omit<StrategyData, "persons"> & { persons?: PersonResult[] }) | null = null;
-  if (doc === "fortune") {
-    try { fortune = JSON.parse(c.hearingJson ?? "{}").results ?? null; } catch { /* ignore */ }
-    if (!fortune?.persons?.length) notFound(); // 未実施なら404（案件ページから実施を促す）
-  }
   // 帳票テンプレートの運用メモを取得
   const TMPL_TYPE: Record<string, string> = {
     quote: "quote", rundown: "rundown", meal: "meal_sheet", orders: "order_sheet",
@@ -197,89 +187,6 @@ export default async function PrintPage({
           </div>
         )}
       </div>
-
-      {doc === "fortune" && fortune && (() => {
-        const bridal = c.caseType === "wedding";
-        const venue = branding.name || c.banquetVenue?.name || "当会場";
-        const persons = (fortune.persons ?? []).map((pp) => ({
-          ...pp,
-          name: pp.label === "新婦" ? c.brideName : c.groomName,
-        }));
-        const compat = fortune.compat;
-        return (
-          <div className="doc-serif" style={{ marginTop: 18 }}>
-            <p style={{ fontSize: 12.5, color: "#6d635e", margin: "0 0 14px", lineHeight: 2 }}>
-              ご回答いただいた診断をもとに、おふたりの気質とご縁を読み解きました。<br />
-              性格タイプはユングのタイプ論（16タイプ）、生まれ星は西洋占星術、気質の五行は四柱推命の見方によるものです。
-              どうぞ肩の力を抜いて、お茶の時間のお供にお楽しみください。
-            </p>
-
-            {/* おふたりのタイプ（2列） */}
-            <div style={{ display: "grid", gridTemplateColumns: persons.length > 1 ? "1fr 1fr" : "1fr", gap: 14 }}>
-              {persons.map((pp, i) => (
-                <div key={i} style={{ border: "1.5px solid #d8c9a5", borderRadius: 12, padding: "16px 18px", background: "#fdfbf6" }}>
-                  <div style={{ fontSize: 10.5, letterSpacing: ".2em", color: "#9a8078" }}>{pp.label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, margin: "2px 0 8px" }}>{pp.name} 様</div>
-                  {pp.mbti && (
-                    <div style={{ marginBottom: 8 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: "#8a6d3b" }}>{pp.mbti}「{pp.mbtiName}」</span>
-                      <span style={{ fontSize: 12, color: "#6d635e", marginLeft: 6 }}>— {pp.mbtiHint}</span>
-                      <p style={{ fontSize: 11, color: "#6d635e", margin: "6px 0 0", lineHeight: 1.9 }}>{mbtiTrivia(pp.mbti)}</p>
-                    </div>
-                  )}
-                  {pp.sign && (
-                    <div style={{ marginBottom: 8 }}>
-                      <b style={{ fontSize: 12.5 }}>⭐ {pp.sign}</b>
-                      <p style={{ fontSize: 11, color: "#6d635e", margin: "4px 0 0", lineHeight: 1.9 }}>{signTrivia(pp.sign)}。</p>
-                    </div>
-                  )}
-                  {pp.element && (
-                    <div>
-                      <b style={{ fontSize: 12.5 }}>🀄 五行「{pp.element}」の気質</b>
-                      <p style={{ fontSize: 11, color: "#6d635e", margin: "4px 0 0", lineHeight: 1.9 }}>{pp.elementNote}。</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* 相性 */}
-            {bridal && compat && (
-              <div style={{ border: "1.5px solid #d8c9a5", borderRadius: 12, padding: "18px 20px", marginTop: 14, background: "#fff", textAlign: "center" }}>
-                <div style={{ fontSize: 10.5, letterSpacing: ".24em", color: "#9a8078" }}>おふたりの相性</div>
-                <div style={{ fontSize: 40, fontWeight: 700, color: "#8a6d3b", lineHeight: 1.3 }}>{compat.score}<span style={{ fontSize: 16 }}> 点</span></div>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{compatGrade(compat.score)}</div>
-                <p style={{ fontSize: 11.5, color: "#6d635e", margin: "0 auto", maxWidth: 560, textAlign: "left", lineHeight: 2 }}>
-                  {elementsTrivia(persons[0]?.element, persons[1]?.element)}
-                </p>
-                {compat.tips.length > 0 && (
-                  <ul style={{ fontSize: 11.5, color: "#6d635e", margin: "8px auto 0", maxWidth: 560, textAlign: "left", paddingLeft: 18, lineHeight: 2 }}>
-                    {compat.tips.map((t, i) => <li key={i}>{t}</li>)}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* 主催者タイプ（宴会） */}
-            {!bridal && fortune.typeCard && (
-              <div style={{ border: "1.5px solid #d8c9a5", borderRadius: 12, padding: "18px 20px", marginTop: 14 }}>
-                <div style={{ fontSize: 15, fontWeight: 700 }}>{fortune.typeCard.title}</div>
-                <p style={{ fontSize: 12, color: "#6d635e", margin: "6px 0 0", lineHeight: 2 }}>{fortune.typeCard.summary}</p>
-              </div>
-            )}
-
-            {/* ご縁の結び */}
-            <div style={{ marginTop: 18, padding: "16px 20px", borderTop: "3px double #d8c9a5", borderBottom: "3px double #d8c9a5" }}>
-              {enMusubi(venue, c.weddingDate, bridal).map((line, i) => (
-                <p key={i} style={{ fontSize: 12, color: "#4a4038", margin: i === 0 ? 0 : "8px 0 0", lineHeight: 2.1 }}>{line}</p>
-              ))}
-            </div>
-            <p style={{ fontSize: 9.5, color: "#b0a89f", marginTop: 10, textAlign: "center" }}>
-              ※ 本診断は、おふたりのご回答をもとにした親睦のための読み物です。{branding.name || "CEREMOS"}
-            </p>
-          </div>
-        );
-      })()}
 
       {doc === "quote" && (
         !quote ? <p style={{ marginTop: 20 }}>見積がまだ作成されていません。</p> : (() => {

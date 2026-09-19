@@ -7,7 +7,7 @@ import { suggestSongs, SCENE_LABELS, MusicPrefs, SONG_DB, SONG_DB_SIZE_TOTAL } f
 export const dynamic = "force-dynamic";
 
 // GET: シーン別おすすめ楽曲（毎回シャッフル10曲・q=キーワード）
-// caseId を渡すと好み診断（10問）の回答でスコアリングし、精度を上げる
+// caseId を渡すと好みのアーティスト・曲でスコアリングし、精度を上げる
 export async function GET(req: NextRequest) {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -16,19 +16,14 @@ export async function GET(req: NextRequest) {
   const caseId = req.nextUrl.searchParams.get("caseId");
 
   let prefs: MusicPrefs | null = null;
-  let usedArtists: Set<string> | undefined;
   if (caseId && (await canAccessCase(s, caseId))) {
-    const c = await prisma.case.findUnique({
-      where: { id: caseId },
-      select: { musicPrefsJson: true, songs: { select: { artist: true } } },
-    });
+    const c = await prisma.case.findUnique({ where: { id: caseId }, select: { musicPrefsJson: true } });
     try { prefs = c?.musicPrefsJson ? JSON.parse(c.musicPrefsJson) : null; } catch { prefs = null; }
-    usedArtists = new Set((c?.songs ?? []).map((x) => x.artist).filter(Boolean) as string[]);
   }
-  const songs = suggestSongs(scene, q, 10, prefs, usedArtists);
+  const songs = suggestSongs(scene, q, 10, prefs);
   return NextResponse.json({
     scene, sceneLabel: scene ? SCENE_LABELS[scene] ?? null : null,
-    prefsApplied: !!prefs,
+    prefsApplied: !!(prefs?.groomArtists?.trim() || prefs?.brideArtists?.trim()),
     dbSize: SONG_DB_SIZE_TOTAL + SONG_DB.length, // 検索対象の総曲数（約2万曲）
     songs,
   });

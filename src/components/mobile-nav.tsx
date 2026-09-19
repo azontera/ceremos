@@ -97,11 +97,11 @@ function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNa
       <nav className="mobile-nav">
         {role === "couple" && coupleCaseId ? (
           <>
-            {/* お客様：ホーム／準備／えらぶ／診断＋メニュー（リニューアル仕様書3.2の5タブ） */}
+            {/* お客様：ホーム／準備／えらぶ／ヒヤリング＋メニュー */}
             {item("/dashboard", "🏠", "ホーム")}
             {item(`/cases/${coupleCaseId}?tab=seating`, "📋", "準備", undefined, "seating")}
             {item(`/cases/${coupleCaseId}?tab=catalog`, "👗", "えらぶ", undefined, "catalog")}
-            {item(`/cases/${coupleCaseId}/hearing`, "🔮", "診断")}
+            {item("/survey", "📝", "ヒヤリング")}
           </>
         ) : (
           <>

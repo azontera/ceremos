@@ -167,85 +167,16 @@ export const SONG_DB: SuggestSong[] = [
   { scene: "ceremony", title: "Time to Say Goodbye", artist: "Sarah Brightman & Andrea Bocelli", memo: "閉式・退場" },
 ];
 
-// ===== 好み診断（10問）によるスコアリング =====
+// ===== 好みのアーティスト・曲によるスコアリング =====
 export type MusicPrefs = {
-  mood?: string;       // formal / casual / natural / gorgeous
-  lang?: string;       // jp / en / mix
-  generation?: string; // teen20 / 30s / 40s / wide
-  standard?: string;   // teiban / balance / unique
-  tempo?: string;      // up / ballad / balance
-  classic?: string;    // yes / chapel_only / no
-  genre?: string;      // jpop / rock / rnb / jazz_classic
-  dupArtist?: string;  // ok / avoid
-  lyrics?: string;     // jp_lyrics / any
-  flashy?: string;     // ok / avoid
   groomArtists?: string; // 新郎の好きなアーティスト・曲（自由記入。選曲を強くブースト）
   brideArtists?: string; // 新婦の好きなアーティスト・曲（自由記入。選曲を強くブースト）
 };
 
-// クラシック・讃美歌系（作曲家・音源）
-const CLASSIC_ARTISTS = new Set([
-  "Pachelbel", "Schubert", "Mendelssohn", "Wagner", "Bach", "Elgar", "Holst",
-  "Tchaikovsky", "Dvořák", "Ennio Morricone", "讃美歌", "ゴスペル", "John Williams",
-  "Sarah Brightman & Andrea Bocelli", "SE音源", "和太鼓・箏 音源",
-]);
-// 「ど定番」タイトル
-const STANDARD_TITLES = new Set([
-  "Marry You", "I Was Born To Love You", "Canon in D（カノン）", "結婚行進曲（真夏の夜の夢）",
-  "ハナミズキ", "糸", "家族になろうよ", "ありがとう", "Sugar", "ultra soul", "乾杯",
-  "Dancing Queen", "September", "Butterfly", "やさしさで溢れるように", "365日", "One Love",
-  "Amazing Grace", "Ave Maria", "未来へ", "Celebration", "Happy", "世界に一つだけの花",
-  "Kiss Me", "キセキ", "威風堂々", "婚礼合唱（ローエングリン）",
-]);
-// アーティスト → 世代タグ（掲載外は wide 扱い）
-const ERA: Record<string, string> = {
-  "YOASOBI": "teen20", "Vaundy": "teen20", "Mrs. GREEN APPLE": "teen20", "Creepy Nuts": "teen20",
-  "藤井風": "teen20", "sumika": "teen20", "WANIMA": "teen20", "TWICE": "teen20",
-  "RADWIMPS": "teen20", "緑黄色社会": "teen20", "ONE OK ROCK": "teen20",
-  "西野カナ": "30s", "GReeeeN": "30s", "星野源": "30s", "back number": "30s", "AI": "30s",
-  "JUJU": "30s", "三代目 J SOUL BROTHERS": "30s", "Superfly": "30s", "嵐": "30s", "Perfume": "30s",
-  "ケツメイシ": "30s", "湘南乃風": "30s", "Taylor Swift": "30s", "Bruno Mars": "30s",
-  "Justin Timberlake": "30s", "Maroon 5": "30s", "Imagine Dragons": "30s", "American Authors": "30s",
-  "Pitbull & Ne-Yo": "30s", "絢香": "30s", "秦基博": "30s", "コブクロ": "30s", "EXILE": "30s",
-  "Mr.Children": "40s", "福山雅治": "40s", "中島みゆき": "40s", "一青窈": "40s", "Kiroro": "40s",
-  "竹内まりや": "40s", "ウルフルズ": "40s", "B'z": "40s", "長渕剛": "40s", "SMAP": "40s",
-  "サンボマスター": "40s", "MONGOL800": "40s", "アンジェラ・アキ": "40s", "いきものがかり": "40s",
-  "FUNKY MONKEY BABYS": "40s", "高橋洋子": "40s", "布施明": "40s", "東京スカパラダイスオーケストラ": "40s",
-  "YUI": "40s", "木村カエラ": "40s", "MISIA": "40s", "MISIA feat. HIDE": "30s", "ゆず": "40s",
-};
-const isJapanese = (s: SuggestSong) => /[぀-ヿ㐀-䶿一-鿿]/.test(s.title + s.artist);
-const isClassic = (s: SuggestSong) => CLASSIC_ARTISTS.has(s.artist);
-
 /** 好みに基づくスコア（高いほど優先） */
-function scoreSong(s: SuggestSong, p: MusicPrefs, scene: string | null): number {
+function scoreSong(s: SuggestSong, p: MusicPrefs): number {
   let sc = 0;
   if (s.memo) sc += 2; // 厳選DB（オペレーションメモ付き）を少し優先
-  const jp = isJapanese(s);
-  const classic = isClassic(s);
-  const std = STANDARD_TITLES.has(s.title);
-  const era = ERA[s.artist] ?? "wide";
-  // 邦楽・洋楽
-  if (p.lang === "jp") sc += jp ? 3 : -2;
-  if (p.lang === "en") sc += jp ? -2 : 3;
-  // 世代
-  if (p.generation && p.generation !== "wide") {
-    if (era === p.generation) sc += 3;
-    else if (era === "wide") sc += 1;
-    else sc -= 1;
-  }
-  // 定番度
-  if (p.standard === "teiban") sc += std ? 3 : 0;
-  if (p.standard === "balance") sc += std ? 1 : 1;
-  if (p.standard === "unique") sc += std ? -3 : 2;
-  // クラシック
-  if (p.classic === "no") sc += classic ? -6 : 0;
-  if (p.classic === "chapel_only") sc += classic ? (scene === "chapel" || scene === "ceremony" ? 2 : -5) : 0;
-  if (p.classic === "yes") sc += classic ? 2 : 0;
-  // 雰囲気
-  if (p.mood === "formal") sc += (classic || std) ? 1 : 0;
-  if (p.mood === "casual") sc += classic ? -2 : 1;
-  // 歌詞
-  if (p.lyrics === "jp_lyrics" && (scene === "bouquet" || scene === "leave")) sc += jp ? 2 : -1;
   // 新郎新婦の好きなアーティスト・曲（自由記入）に一致 → 大きくブースト
   const fav = `${p.groomArtists ?? ""}　${p.brideArtists ?? ""}`.toLowerCase();
   if (fav.trim()) {
@@ -255,13 +186,12 @@ function scoreSong(s: SuggestSong, p: MusicPrefs, scene: string | null): number 
   return sc;
 }
 
-/** シーン別おすすめ（好み診断があればスコア重み付け＋ランダム性で count 件） */
+/** シーン別おすすめ（好みのアーティストがあればスコア重み付け＋ランダム性で count 件） */
 export function suggestSongs(
   scene: string | null,
   q: string,
   count = 10,
   prefs?: MusicPrefs | null,
-  excludeArtists?: Set<string>,
 ): SuggestSong[] {
   let pool: SuggestSong[];
   if (q.trim()) {
@@ -287,13 +217,9 @@ export function suggestSongs(
     const extra = SONG_DB_LARGE.filter((s) => s.scene === scene && !s.variant);
     if (extra.length > 0) pool = [...pool, ...extra];
   }
-  // 同一アーティスト回避（好み診断で「避けたい」の場合、既に採用済みのアーティストを除外）
-  if (prefs?.dupArtist === "avoid" && excludeArtists && excludeArtists.size > 0) {
-    const filtered = pool.filter((s) => !excludeArtists.has(s.artist));
-    if (filtered.length >= Math.min(count, 5)) pool = filtered;
-  }
-  if (!prefs) {
-    // 診断なし：純粋シャッフル
+  const hasFav = !!(prefs?.groomArtists?.trim() || prefs?.brideArtists?.trim());
+  if (!hasFav) {
+    // 好みなし：純粋シャッフル
     const arr = [...pool];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -301,9 +227,9 @@ export function suggestSongs(
     }
     return arr.slice(0, count);
   }
-  // 診断あり：スコア＋乱数で重み付け抽選（毎回少し変わる＝再更新で引き直せる）
+  // 好みあり：スコア＋乱数で重み付け抽選（毎回少し変わる＝再更新で引き直せる）
   return [...pool]
-    .map((s) => ({ s, w: scoreSong(s, prefs, scene) + Math.random() * 4 }))
+    .map((s) => ({ s, w: scoreSong(s, prefs!) + Math.random() * 4 }))
     .sort((a, b) => b.w - a.w)
     .slice(0, count)
     .map((x) => x.s);

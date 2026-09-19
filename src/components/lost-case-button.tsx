@@ -2,7 +2,7 @@
 // 失注の記録ボタン＋理由入力モーダル（理由必須・ステップは自動記録）
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LOST_REASONS } from "@/lib/sales-steps";
+import { LOST_REASONS } from "@/lib/case-types";
 
 export function LostCaseButton({ caseId, isLost, lostReason }: { caseId: string; isLost: boolean; lostReason?: string | null }) {
   const [open, setOpen] = useState(false);
@@ -40,7 +40,7 @@ export function LostCaseButton({ caseId, isLost, lostReason }: { caseId: string;
             </p>
             <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
               {LOST_REASONS.map(([v, label]) => (
-                <button key={v} className={`hearing-opt ${reason === v ? "sel" : ""}`} style={{ padding: "10px 14px" }}
+                <button key={v} className={`btn ${reason === v ? "primary" : ""}`} style={{ padding: "10px 14px" }}
                   onClick={() => setReason(v)}>{label}</button>
               ))}
             </div>

@@ -27,11 +27,7 @@ import { BillingPanel } from "@/components/billing-panel";
 import { CustomerAccountPanel } from "@/components/customer-account-panel";
 import { CaseInfoCard } from "@/components/case-info-card";
 import { DayVenueChart } from "@/components/day-venue-chart";
-import { TabAdvice } from "@/components/tab-advice";
 import { LostCaseButton } from "@/components/lost-case-button";
-import { AiPlanImport } from "@/components/ai-plan-import";
-import { StrategyPanel, type StrategyData } from "@/components/strategy-panel";
-import { computeSalesSteps } from "@/lib/sales-steps";
 import { isBridal } from "@/lib/terms";
 import { resolveCoupleSide } from "@/lib/couple-side";
 import { prisma } from "@/lib/db";
@@ -39,8 +35,7 @@ import { prisma } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 // タブ構成（1タブ=1業務。縦に全部並べるLP型は廃止・?tab= で切替）
-// スタッフ: 案件（情報・ToDo・ヒヤリング・攻略・失注）／打ち合わせ／見積／席次／進行／選曲／リソース／チャット
-// 「進め方」は独立タブではなく、関連する各タブの中にさりげないアドバイス（TabAdvice）として表示する
+// スタッフ: 案件（情報・ToDo・ヒヤリング・失注）／打ち合わせ／見積／席次／進行／選曲／リソース／チャット
 const STAFF_TABS = [
   { key: "info", label: "📌 案件" },
   { key: "meetings", label: "📝 打ち合わせ" },
@@ -147,7 +142,6 @@ export default async function CaseDetailPage({
     }),
     isStaff ? prisma.menuItem.findMany({ where: { caseId: c.id }, orderBy: { sortOrder: "asc" } }) : Promise.resolve([]),
   ]);
-  const followUpsCount = isStaff ? await prisma.followUp.count({ where: { caseId: c.id } }) : 0;
   // チャットタブの未読バッジ（新着があれば動きで気づけるように）
   const unreadChatCount = await prisma.chatMessage.count({
     where: { caseId: c.id, NOT: { senderId: s.userId }, reads: { none: { userId: s.userId } } },
@@ -187,28 +181,6 @@ export default async function CaseDetailPage({
     if (meUser) mySeatingSide = resolveCoupleSide(meUser, c, myMember?.roleInCase);
   }
 
-  // 商談ステップナビ＋顧客攻略パネル（コックピット両翼・スタッフのみ）
-  let strategy: StrategyData | null = null;
-  if (c.hearingJson) {
-    try { strategy = (JSON.parse(c.hearingJson).results as StrategyData) ?? null; } catch { /* ignore */ }
-  }
-  const salesSteps = isStaff
-    ? computeSalesSteps({
-        caseType: c.caseType, status: c.status,
-        hearingDone: !!c.hearingJson,
-        surveyAnswered: customerSurveys.length > 0,
-        meetingsCount: c.meetings.length,
-        quotesCount: c.quotes.length,
-        quoteApproved: c.quotes.some((q) => q.status === "approved"),
-        progressPercent: progress.percent,
-        daysUntil: ddays,
-        invoicePaid: invoices.some((i) => i.status === "paid"),
-        followUpsCount,
-      })
-    : null;
-  // 「進め方」は単独タブではなく、今のステップに対応するタブの中にさりげなく表示する
-  const currentStep = salesSteps?.steps.find((st) => st.key === salesSteps.currentKey) ?? null;
-  const currentStepTab = currentStep ? (currentStep.anchor === "hearing" ? "info" : currentStep.anchor ?? "info") : null;
 
   return (
     <>
@@ -248,7 +220,6 @@ export default async function CaseDetailPage({
       <div className="section-h"><h2>📝 打ち合わせ記録</h2>
         <span className="pill gray">{c.meetings.length}回実施{nextMeeting ? ` ・ 次回 ${d(nextMeeting)}` : ""}</span>
       </div>
-        {currentStep && currentStepTab === "meetings" && <TabAdvice caseId={c.id} step={currentStep} />}
         <div className="grid" style={{ gap: 14 }}>
           {can(s.role, "meetings", "edit") && (
             <div style={{ display: "flex" }}><MeetingForm caseId={c.id} /></div>
@@ -281,42 +252,13 @@ export default async function CaseDetailPage({
         </div>
       </>)}
 
-      {/* ===== 📌 案件タブ（基本情報・ToDo・ヒヤリング・顧客攻略・失注・アンケート） ===== */}
+      {/* ===== 📌 案件タブ（基本情報・ToDo・失注・ヒヤリング） ===== */}
       {isStaff && tab === "info" && (<>
-      {currentStep && currentStepTab === "info" && <TabAdvice caseId={c.id} step={currentStep} />}
       {can(s.role, "cases", "edit") && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
           <LostCaseButton caseId={c.id} isLost={c.status === "lost"} lostReason={c.lostReason} />
         </div>
       )}
-
-      {/* 🔮 AIヒヤリング（診断型）ステータス */}
-      <div className="card" id="hearing" style={{ padding: "14px 18px", marginBottom: 16, display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-        <b style={{ fontSize: 13.5 }}>🔮 AIヒヤリング</b>
-        {strategy ? (
-          <>
-            <span className="pill green">実施済み</span>
-            <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
-              {strategy.typeCard?.title ?? ""} — 診断結果は下の顧客攻略に表示中
-            </span>
-            <a className="btn sm" href={`/api/v1/cases/${c.id}/hearing/md`}>📄 AI生成依頼MD</a>
-            <AiPlanImport caseId={c.id} />
-            <a className="btn sm" href={`/print/${c.id}/fortune`} target="_blank">🖨 診断書（お客様用）</a>
-            <Link className="btn sm" href={`/cases/${c.id}/hearing`}>再ヒヤリング</Link>
-          </>
-        ) : (
-          <>
-            <span className="pill amber">未実施</span>
-            <span style={{ fontSize: 12.5, color: "var(--text2)", flex: 1, minWidth: 200 }}>
-              診断型ヒヤリングを実施すると、顧客攻略・テンプレ生成・アップセル提案が使えます
-            </span>
-            <Link className="btn primary sm" href={`/cases/${c.id}/hearing`}>ヒヤリングを開始 →</Link>
-          </>
-        )}
-      </div>
-
-      {/* 🎯 顧客攻略（AIヒヤリングの下） */}
-      <StrategyPanel caseId={c.id} isBridalCase={isBridal(c.caseType)} strategy={strategy} />
 
       <div className="grid cols-2">
       <CaseInfoCard
@@ -415,7 +357,6 @@ export default async function CaseDetailPage({
               <h2>🏛 リソース確認</h2>
               <span style={{ fontSize: 11.5, color: "var(--text3)" }}>施設・設備・スタッフ・お客様の進行を1本の時間軸で確認</span>
             </div>
-            {currentStep && currentStepTab === "resources" && <TabAdvice caseId={c.id} step={currentStep} />}
             <DayVenueChart dateISO={iso} />
             <div style={{ height: 14 }} />
             <AssignmentsPanel
@@ -449,7 +390,6 @@ export default async function CaseDetailPage({
       {/* ===== 💰 見積タブ（見積・カタログ・発注・料理・請求） ===== */}
       {tab === "quotes" && (<>
       <div className="section-h" id="quotes"><h2>💰 見積</h2></div>
-      {isStaff && currentStep && currentStepTab === "quotes" && <TabAdvice caseId={c.id} step={currentStep} />}
       {/* お客様向け：支払いスケジュールと入金状況（閲覧専用） */}
       {s.role === "couple" && (paymentPlans.length > 0 || invoices.length > 0) && (
         <div className="card" style={{ marginBottom: 14 }}>
@@ -557,7 +497,6 @@ export default async function CaseDetailPage({
       {/* ===== 📋 進行タブ ===== */}
       {tab === "rundown" && (<>
       <div className="section-h" id="rundown"><h2>📋 進行表</h2></div>
-      {isStaff && currentStep && currentStepTab === "rundown" && <TabAdvice caseId={c.id} step={currentStep} />}
       <RundownEditor
         caseId={c.id}
         caseType={c.caseType}

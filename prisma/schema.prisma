@@ -120,12 +120,12 @@ model Case {
   plannerId      String?
   planner        User?     @relation("planner", fields: [plannerId], references: [id])
   contractJson   String?
-  musicPrefsJson String?   // 楽曲の好み診断（10問＋好きなアーティスト）の回答（おすすめ選曲の精度向上に使用）
+  musicPrefsJson String?   // 好みのアーティスト・曲（おすすめ選曲の精度向上に使用）
   prepJson       String?   // 準備チェックリスト（招待状発送済み等の手動チェック。お客様とプランナーで共有）
-  hearingJson    String?   // AIヒヤリング（診断型）の回答と診断結果。{ groom:{...}, bride:{...}, host:{...}, results:{mbti,fortune,compat,strategy} }
+  hearingJson    String?   // （旧AIヒヤリング診断の残置データ。UIからは未使用）
   lostReason     String?   // 失注理由: price / schedule / competitor / atmosphere / other（status="lost" 時に必須）
   lostNote       String?   // 失注理由の自由記述
-  lostStep       String?   // 失注時に居た商談ステップkey（sales-steps.ts）
+  lostStep       String?   // （旧商談ステップの残置データ。UIからは未使用）
   lostAt         DateTime? // 失注日時
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

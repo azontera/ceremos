@@ -81,8 +81,6 @@ export function QuotesPanel({
   const [tplChoices, setTplChoices] = useState<{ id: string; name: string; items: Item[]; packId?: string; category?: string }[] | null>(null);
   // ウィザード：ステップ1で種別（ブライダル／宴会）を選び、ステップ2でプランを選ぶ
   const [wizCat, setWizCat] = useState<"" | "bridal" | "banquet" | "other">("");
-  // 🎯 ヒヤリングシートの回答から推奨されるテンプレ（回答があるときのみ）
-  const [rec, setRec] = useState<{ templateId: string; templateName: string; reasons: string[] } | null>(null);
   // 📥 この案件の内容をテンプレート一式として保存
   const [savingTpl, setSavingTpl] = useState(false);
   const [saveTplMsg, setSaveTplMsg] = useState("");
@@ -132,11 +130,6 @@ export function QuotesPanel({
     // 進行表テンプレ一覧（見積と同時に選べる）
     fetch("/api/v1/templates?type=rundown").then((r) => r.json()).then((d) => {
       setRundownTpls((d.templates ?? []).map((t: { id: string; name: string }) => ({ id: t.id, name: t.name })));
-    }).catch(() => {});
-    // 🎯 ヒヤリングシートからのおすすめプラン
-    setRec(null);
-    fetch(`/api/v1/cases/${caseId}/quote-recommendation`).then((r) => r.json()).then((d) => {
-      if (d.recommendation) setRec(d.recommendation);
     }).catch(() => {});
     historyRef.current = []; setUndoCount(0);
     // 毎回テンプレートを選択可能（初回・2回目以降とも：前バージョン引き継ぎ／テンプレ／白紙）
@@ -283,24 +276,6 @@ export function QuotesPanel({
                   テンプレートを選ぶと、料理メニュー・席次レイアウト・リソース・進行表（司会台本・楽曲つき）まで自動でセットアップされます
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 10 }}>
-                  {/* 🎯 ヒヤリングシートの回答から自動選択されたおすすめプラン */}
-                  {rec && (() => {
-                    const t = tplChoices.find((x) => x.id === rec.templateId);
-                    if (!t) return null;
-                    const { no, plan, spec } = parseName(t.name);
-                    return (
-                      <button className="card" style={{ padding: 16, textAlign: "left", cursor: "pointer", border: "2px solid var(--accent)", background: "var(--surface2)" }}
-                        title={rec.reasons.join("／")}
-                        onClick={() => { setItems(scaleQuoteItems(t.items.map((i) => ({ ...i })), guestCount)); setTplName(t.name); setPackId(t.packId ?? ""); setTplChoices(null); setEditing(true); }}>
-                        <b style={{ fontSize: 14 }}>🎯 ヒヤリングからのおすすめ</b>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 5 }}>{no && <span style={{ color: "var(--accent-text)", marginRight: 4 }}>{no}</span>}{plan}{spec ? `（${spec}）` : ""}</div>
-                        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 4, lineHeight: 1.7 }}>
-                          {rec.reasons.slice(0, 3).map((x, i) => <div key={i}>・{x}</div>)}
-                          {rec.reasons.length === 0 && "お客様のヒヤリング回答に基づく推奨です"}
-                        </div>
-                      </button>
-                    );
-                  })()}
                   {latest && (
                     <button className="card" style={{ padding: 16, textAlign: "left", cursor: "pointer", border: "1.5px solid var(--accent)" }}
                       onClick={() => { setItems(latest.items.map((i) => ({ ...i }))); setTplChoices(null); setEditing(true); }}>
@@ -353,9 +328,9 @@ export function QuotesPanel({
                     const { no, plan, spec } = parseName(t.name);
                     return (
                       <button key={t.id} className="card"
-                        style={{ padding: 15, textAlign: "left", cursor: "pointer", ...(rec?.templateId === t.id ? { border: "2px solid var(--accent)" } : {}) }}
+                        style={{ padding: 15, textAlign: "left", cursor: "pointer" }}
                         onClick={() => { setItems(scaleQuoteItems(t.items.map((i) => ({ ...i })), guestCount)); setTplName(t.name); setPackId(t.packId ?? ""); setTplChoices(null); setEditing(true); }}>
-                        <b style={{ fontSize: 13.5 }}>{rec?.templateId === t.id && <span title={rec.reasons.join("／")}>🎯 </span>}{t.packId && <span title="テンプレ一式（料理・進行・リソースまで自動セットアップ）">📦 </span>}{no && <span style={{ color: "var(--accent-text)", marginRight: 4 }}>{no}</span>}{plan}</b>
+                        <b style={{ fontSize: 13.5 }}>{t.packId && <span title="テンプレ一式（料理・進行・リソースまで自動セットアップ）">📦 </span>}{no && <span style={{ color: "var(--accent-text)", marginRight: 4 }}>{no}</span>}{plan}</b>
                         <div style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 5, display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {spec && <span className="pill gray" style={{ fontSize: 10.5 }}>{spec}</span>}
                           <span>{t.items.length}品目</span>

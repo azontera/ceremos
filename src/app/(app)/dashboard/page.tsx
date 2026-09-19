@@ -6,7 +6,6 @@ import { getDashboard } from "@/lib/queries";
 import { daysUntil, ddayLabel, computeProgress } from "@/lib/progress";
 import { timeRangeLabel } from "@/lib/case-time";
 import { typeMeta, caseLabel } from "@/lib/case-types";
-import { CustomerWizard } from "@/components/customer-wizard";
 import { cleanupExpiredSongMedia } from "@/lib/cleanup";
 import { resolveCoupleSide } from "@/lib/couple-side";
 import { t as term, isBridal } from "@/lib/terms";
@@ -61,21 +60,14 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
           meetingsCount: c.meetings.length, quotes: c.quotes, orders: c.orders,
           songsCount: c.songs.length, guests: c.guests, rundownCount: c.rundownItems.length,
         });
-        let myHearingDone = false;
-        try {
-          const h = JSON.parse(c.hearingJson ?? "{}");
-          const key = bridal ? (mySide ?? "groom") : "host";
-          myHearingDone = Object.keys(h.answers?.[key] ?? {}).length > 0;
-        } catch { /* ignore */ }
         const sideLabel = mySide ? term(mySide === "groom" ? "groomSide" : "brideSide", c.caseType) : null;
         const myGuests = mySide ? c.guests.filter((g) => g.side === mySide).length : c.guests.length;
         const latestQuote = c.quotes[c.quotes.length - 1];
         type Feed = { icon: string; title: string; desc: string; href: string; urgent?: boolean };
         const feed: Feed[] = [
-          ...(!myHearingDone ? [{
-            icon: "🔮", title: bridal ? "ふたりの結婚式診断に答える" : "ご宴会ヒヤリングに答える",
-            desc: "10〜15分の楽しい診断です。回答から最適なプランをおつくりします",
-            href: `/cases/${c.id}/hearing`, urgent: true,
+          ...(!surveyDone ? [{
+            icon: "📝", title: "ヒヤリングに答える（1〜2分）", desc: "ご希望・お好みなど、プランづくりに必要なことを教えてください",
+            href: "/survey", urgent: true,
           }] : []),
           ...c.tasks.map((tk) => ({
             icon: "📌", title: tk.title,
@@ -91,10 +83,6 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
             icon: "🪑", title: sideLabel ? `${sideLabel}ゲストのご入力（あなたの担当）` : `${term("guests", c.caseType)}のご入力`,
             desc: bridal ? "おふたりで分担してゲストを登録しましょう" : "参加者リストを登録しましょう",
             href: `/cases/${c.id}?tab=seating`,
-          }] : []),
-          ...(!surveyDone ? [{
-            icon: "📝", title: "かんたん事前アンケートに答える（1〜2分）", desc: "診断とは別の項目です。連絡先やお好みなど簡単な追加情報を教えてください",
-            href: "/survey",
           }] : []),
           ...(c.songs.filter((sg) => sg.title && sg.title !== "（曲未定）").length < 5 && c.rundownItems.length > 0 ? [{
             icon: "🎵", title: "楽曲をえらぶ", desc: "おすすめから視聴して決められます",
@@ -163,8 +151,6 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
                 </Link>
               ))}
             </div>
-            {/* 🧭 新規プランづくりウィザード（まだ見積が無いとき：客が選ぶ→テンプレ一式で下書き作成） */}
-            {c.quotes.length === 0 && <CustomerWizard caseId={c.id} caseType={c.caseType} />}
           </div>
         );
       })}
