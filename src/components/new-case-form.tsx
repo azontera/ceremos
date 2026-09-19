@@ -99,7 +99,7 @@ export function NewCaseForm({
             <button type="button" onClick={() => setPackId("")}
               className="card" style={{ padding: 12, textAlign: "left", cursor: "pointer", border: packId === "" ? "2px solid var(--accent)" : "1px solid var(--border)" }}>
               <b style={{ fontSize: 12.5 }}>選択しない</b>
-              <div style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 3 }}>あとで見積タブからも選べます</div>
+              <div style={{ fontSize: 10.5, color: "var(--text3)", marginTop: 3 }}>あとから💰お金タブの見積作成時にも選べます</div>
             </button>
             {packs.filter(packMatchesType).map((p) => (
               <button type="button" key={p.id} onClick={() => setPackId(packId === p.id ? "" : p.id)}
@@ -193,7 +193,8 @@ export function NewCaseForm({
           <button type="button" className="btn" onClick={() => history.back()}>キャンセル</button>
         </div>
         <p style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 14 }}>
-          同一会場で時間帯が重なる予約は自動でブロックされます。自由入力の会場は「その他（外部会場）」として会場マスタに自動登録されます。進行表・料理・席次・リソースは、見積タブでテンプレートを選んで保存すると自動セットアップされます。
+          同一会場で時間帯が重なる予約は自動でブロックされます。自由入力の会場は「その他（外部会場）」として会場マスタに自動登録されます。
+          テンプレ一式を選ばなかった場合、進行表・料理・席次・リソースは空のまま作成されます（あとから💰お金タブで見積を作るときにテンプレ一式を選ぶと同じ自動セットアップができます）。
         </p>
       </div>
     </form>
