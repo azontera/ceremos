@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession, verifyUserToken } from "@/lib/auth";
 import { audit } from "@/lib/rbac";
 
-// 事前アンケート（任意）— 登録直後の30日トークン、またはログイン済み顧客セッションで読み書き
+// ヒヤリング（任意）— ログイン済み顧客セッションで読み書き
 async function resolveUserId(req: NextRequest, tokenFromBody?: string): Promise<string | null> {
   const token = tokenFromBody ?? req.nextUrl.searchParams.get("token") ?? "";
   if (token) return verifyUserToken(token, "survey");
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     survey: p.survey ?? {},
     eventType: p.eventType === "party" ? "party" : "wedding", // 質問セット（ブライダル/宴会）の出し分けに使用
-    // 生年月日は登録時の必須項目のためアンケートでは扱わない
+    // 生年月日は登録時の項目のためヒヤリングでは扱わない
     basics: {
       gender: p.gender ?? "", hasChildren: p.hasChildren ?? "",
       // 個人情報（ログイン後に入力・修正できる）
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       ...(typeof basics.address === "string" ? { address: basics.address.trim() || null } : {}),
       profileJson: JSON.stringify({
         ...p,
-        // birthDate は登録時の値を保持（アンケートから上書きしない）
+        // birthDate は登録時の値を保持（ヒヤリングから上書きしない）
         gender: basics.gender ?? p.gender ?? "",
         hasChildren: basics.hasChildren ?? p.hasChildren ?? "",
         furigana: typeof basics.furigana === "string" && basics.furigana.trim() ? basics.furigana.trim() : p.furigana ?? "",

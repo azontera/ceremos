@@ -320,9 +320,9 @@ export default async function CaseDetailPage({
           }))}
         />
       )}
-      {/* お客様の事前アンケート（回答があるときのみ・スタッフ共有用） */}
+      {/* お客様のヒヤリング回答（回答があるときのみ・スタッフ共有用） */}
       {isStaff && customerSurveys.length > 0 && (
-        <div className="card"><div className="card-h">📝 お客様アンケート<span className="pill blue">{customerSurveys.length}名分</span></div><div className="card-b">
+        <div className="card"><div className="card-h">📝 お客様ヒヤリング<span className="pill blue">{customerSurveys.length}名分</span></div><div className="card-b">
           {customerSurveys.map((cs, i) => (
             <div key={i} style={{ marginBottom: 10 }}>
               <b style={{ fontSize: 12.5 }}>{cs.name} 様{cs.furigana ? <span style={{ fontWeight: 400, fontSize: 11, color: "var(--text3)" }}>（{cs.furigana}）</span> : null}</b>
@@ -341,7 +341,7 @@ export default async function CaseDetailPage({
             </div>
           ))}
           <p style={{ fontSize: 11, color: "var(--text3)", margin: 0 }}>
-            ※ お客様がログイン後に「📝 事前アンケート」から回答・更新した内容が反映されます。
+            ※ お客様がログイン後に「📝 ヒヤリング」から回答・更新した内容が反映されます。
           </p>
         </div></div>
       )}

@@ -8,7 +8,7 @@ export default function SurveyPage() {
   return <Suspense><SurveyInner /></Suspense>;
 }
 
-// 事前アンケート（すべて任意）— 登録直後のトークン、またはログイン済みセッションで回答できる
+// ヒヤリング（すべて任意）— ログイン済みセッションで回答できる
 function SurveyInner() {
   const token = useSearchParams().get("token") ?? "";
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -54,7 +54,7 @@ function SurveyInner() {
   if (invalid) {
     return (
       <div className="login-wrap"><div className="login-card">
-        <p>リンクの有効期限が切れているか、無効です。<br />ログイン後にもアンケートへ回答できます。</p>
+        <p>リンクの有効期限が切れているか、無効です。<br />ログイン後にヒヤリングへ回答できます。</p>
         <Link className="btn" href="/login">ログイン画面へ</Link>
       </div></div>
     );
@@ -99,7 +99,7 @@ function SurveyInner() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {/* 生年月日はご登録時にいただくため、アンケートでは伺いません */}
+            {/* 生年月日はご登録時にいただくため、ヒヤリングでは伺いません */}
             <div className="field" style={{ flex: 1, minWidth: 120, marginBottom: 0 }}>
               <label>性別</label>
               <select className="form-input" value={basics.gender ?? ""}

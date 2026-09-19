@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SURVEY_ALL } from "@/lib/survey";
 
-// 顧客マスタ（独立ページ）— 一覧・検索・無効化・削除・アンケート閲覧
+// 顧客マスタ（独立ページ）— 一覧・検索・無効化・削除・ヒヤリング閲覧
 type Profile = {
   furigana?: string; partnerName?: string; partnerFurigana?: string; partnerBirthDate?: string;
   birthDate?: string; gender?: string; hasChildren?: string;
@@ -98,7 +98,7 @@ export function CustomersAdmin({ customers, canDelete }: { customers: CustomerRo
               </div>
               {answered > 0 && (
                 <details style={{ marginTop: 6, fontSize: 12 }}>
-                  <summary style={{ cursor: "pointer", color: "var(--accent-text)" }}>📝 アンケート（{answered}問回答）を見る</summary>
+                  <summary style={{ cursor: "pointer", color: "var(--accent-text)" }}>📝 ヒヤリング（{answered}問回答）を見る</summary>
                   <div style={{ padding: "8px 12px", background: "var(--surface2)", borderRadius: 8, marginTop: 6, columnCount: 2, columnGap: 24 }}>
                     {Object.entries(p!.survey!).filter(([, v]) => v?.trim()).map(([key, v]) => (
                       <div key={key} style={{ breakInside: "avoid", marginBottom: 4 }}>

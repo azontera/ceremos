@@ -33,7 +33,7 @@ async function CustomerHome({ userId, name }: { userId: string; name: string }) 
   });
   const cases = memberships.map((m) => ({ ...m.case, roleInCase: m.roleInCase }))
     .sort((a, b) => a.weddingDate.getTime() - b.weddingDate.getTime());
-  // アンケート回答済みか（profileJson.survey）
+  // ヒヤリング回答済みか（profileJson.survey）
   let surveyDone = false;
   try { surveyDone = Object.values(JSON.parse(me?.profileJson ?? "{}").survey ?? {}).some((v) => String(v ?? "").trim()); } catch { /* ignore */ }
 

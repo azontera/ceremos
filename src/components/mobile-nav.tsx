@@ -48,7 +48,6 @@ function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNa
       [`/cases/${coupleCaseId}?tab=rundown`, "📋 当日の流れ"],
       [`/cases/${coupleCaseId}?tab=songs`, "🎵 楽曲をえらぶ"],
       [`/cases/${coupleCaseId}?tab=chat`, "💬 プランナーに相談"],
-      ["/survey", "📝 事前アンケート"],
     ] as [string, string][] : []),
     ...(isStaff3 ? [
       ["/customers", "💐 顧客マスタ"],
@@ -62,7 +61,7 @@ function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNa
       ["/admin/audit", "🕐 操作履歴"],
     ] as [string, string][] : []),
     ...(vendorId ? [[`/vendors/${vendorId}`, "🏪 自社ページ"]] as [string, string][] : []),
-    ...(role === "couple" ? [["/survey", "📝 ヒヤリングシート"]] as [string, string][] : []),
+    ...(role === "couple" && !coupleCaseId ? [["/survey", "📝 ヒヤリング"]] as [string, string][] : []),
     ["/me/password", "🔑 パスワード変更"],
   ];
 

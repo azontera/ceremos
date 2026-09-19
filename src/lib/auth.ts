@@ -45,7 +45,7 @@ export function destroySession() {
 }
 
 // ===== 用途別ユーザートークン（DB保存不要・SESSION_SECRETで署名） =====
-// purpose: profile（プロフィール入力・2時間）/ survey（アンケート・30日）
+// purpose: profile（プロフィール入力・2時間）/ survey（ヒヤリング・30日）
 export async function createUserToken(userId: string, purpose: string, expiresIn: string): Promise<string> {
   return new SignJWT({ userId, purpose })
     .setProtectedHeader({ alg: "HS256" })

@@ -1,5 +1,5 @@
-// 顧客セルフ登録のプロフィール項目＋アンケート30問（式場ヒアリングの定番）
-// アンケートはすべて任意。回答は User.profileJson に保存され、承認画面・案件作成の参考に使う。
+// 顧客プロフィール項目＋ヒヤリング10問（式場ヒアリングの定番）
+// ヒヤリングはすべて任意。回答は User.profileJson に保存され、案件ページでスタッフに共有される。
 
 export type SurveyQ = { key: string; q: string; type: "select" | "text"; opts?: string[] };
 

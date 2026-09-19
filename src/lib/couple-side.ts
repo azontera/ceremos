@@ -1,5 +1,5 @@
 // 新郎側/新婦側の担当解決（席次の分担入力・ヒヤリングの回答者判定に使用）
-// 優先順: CaseMember.roleInCase（"groom"/"bride"）→ 氏名の一致 → アンケートの性別 → 判定不能(null)
+// 優先順: CaseMember.roleInCase（"groom"/"bride"）→ 氏名の一致 → ヒヤリングの性別 → 判定不能(null)
 // 判定不能のときは両方編集可（ロックしない）にフォールバックする。
 
 export type CoupleSide = "groom" | "bride";
