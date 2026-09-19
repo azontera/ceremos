@@ -1,4 +1,4 @@
-// 失注の記録（リニューアル仕様書 2.5・P5）
+// 失注の記録（docs/仕様_現行.md）
 // POST: { reason: price|schedule|competitor|atmosphere|other, note? } — status="lost" にして理由・ステップ・日時を記録
 // DELETE: 失注を取り消して商談中（contracted）に戻す
 // 理由は必須（成果ダッシュボードで理由別に集計するため）

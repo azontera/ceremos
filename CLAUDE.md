@@ -26,29 +26,45 @@ rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclu
 - サンドボックス環境でのPrisma生成回避策・詳細は `.claude/skills/verify-local/SKILL.md`（「型チェック」で発動）
 
 ## 主要ファイルマップ
-- テンプレは**テンプレ一式（type="pack"）JSON方式**（内蔵テンプレ廃止済み）: `src/lib/template-pack.ts`（parsePack/scorePack/applyPackToCase）・管理画面からJSONを読み込み。JSON要件=`docs/template-pack-spec.md`
-- `src/app/api/v1/cases/[id]/quotes/route.ts` … 見積保存時の自動セットアップ（料理／席次／リソース／進行表適用）
-- `src/components/quotes-panel.tsx` … 見積UI（新規=ウィザード、確定済は「新Ver作成」で編集。ステータスは draft/confirmed/archived の3つ・`src/lib/quote-status.ts`）
+- 現行仕様の正本は `docs/仕様_現行.md`（コンセプト・ロール・フロー・タブ構成・見積状態・削除済み機能）
+- `src/app/(app)/cases/[id]/page.tsx` … 案件詳細。**案件画面のタブ構成は固定。変更する場合はユーザーの明示承認が必要**
+  - スタッフ5タブ: 📌案件(info) ／ 💰お金(money) ／ 🪑席次(seating) ／ 📋進行(rundown) ／ 💬連絡(chat)
+  - お客様4タブ: 💰お見積り(money) ／ 🪑席次 ／ 📋当日の流れ(rundown) ／ 💬連絡
+  - タブ内はセクション（`.section-h` + id）。旧タブ名は `TAB_ALIAS` で新タブ＋アンカー（`?tab=money#billing` 等）へリダイレクト。新しいリンクは必ず新タブ名で書く
+- `src/app/(app)/layout.tsx`（サイドバー）／ `src/components/mobile-nav.tsx`（スマホ下部ナビ）… ナビは仕様_現行.md 4章の並びに固定
+- `src/app/(app)/dashboard/page.tsx` + `getDashboard`（`src/lib/queries.ts`）… スタッフ: 今日・今週／タスク／見積下書き・未入金／未対応クレーム。お客様: 「今やること」
+- `src/lib/quote-status.ts` … 見積ステータス draft / confirmed / archived（旧 approved 等は確定として読む）
+- `src/components/quotes-panel.tsx` … 見積UI（新規=ウィザード、確定済は「新Ver作成」）。保存時に `packId`／`templateName` を渡すと自動セットアップ
+- `src/app/api/v1/cases/[id]/quotes/route.ts` … 見積保存時の自動セットアップ（料理／席次／リソース／進行表／発注）。`apply-pack/route.ts` は新規案件作成直後のテンプレ一式適用
+- `src/app/api/v1/cases/[id]/customers/route.ts` … お客様アカウント発行（同メールが既存なら紐付けのみ）。UI=`customer-account-panel.tsx`
+- テンプレは**テンプレ一式（type="pack"）JSON方式**: `src/lib/template-pack.ts`（parsePack/scorePack/applyPackToCase/loadPacks）＋`pack-scaling.ts`（人数スケーリング）＋`catalog-import.ts`。管理画面からJSONを読み込み。JSON要件=`docs/template-pack-spec.md`
+- `src/lib/terms.ts` … 婚礼／宴会の用語辞書 `t()`・`isBridal()`。画面文言は原則これを通す
+- `src/lib/survey.ts` + `src/app/survey/page.tsx` … お客様ヒヤリング（婚礼10問／宴会10問・User.profileJson.survey）
 - `src/lib/rundown.ts` … recalcRundownTimes / fillNameTokens / applyRundownTemplateToCase / sceneForTitle
-- `src/lib/cue-timings.ts` `src/lib/menu-presets.ts` `src/lib/song-db.ts`（好みアーティスト+30ブースト）
-- `src/components/songs-panel.tsx` … 選曲専用。🎲全曲おまかせ／♪全シーンに曲枠作成／⏱cueTiming
+- `src/lib/cue-timings.ts` `src/lib/menu-presets.ts` `src/lib/song-db.ts`（好みアーティスト+30ブースト）`src/lib/mc-templates.ts`（婚礼／宴会の司会コメントバンク）
+- `src/components/songs-panel.tsx` … 選曲（📋進行タブ内 `#songs`）。🎲全曲おまかせ／♪全シーンに曲枠作成／⏱cueTiming
 - `src/components/audio-console.tsx` … 再生プレイヤー（Space/Esc・波形シーク・F.I/F.O・投影モニター・暗転・待機画像）
-- `src/app/live/[id]/screen/page.tsx` … 映像ウィンドウ。BroadcastChannel名 `ceremos-live-${caseId}`（cmd: load/volume/seek/stop/fade/blackout/idle-refresh/fullscreen/progress/screen-ready/screen-ended/key）
-- `src/app/login/page.tsx` … 入口（ログインのみ・ID+PW。セルフ登録・承認フローは廃止）。お客様アカウントは案件ページの「👤 お客様アカウント」からプランナーが発行（`/api/v1/cases/[id]/customers`）
-- `src/components/seating-panel.tsx` … 席次表エディタ（ズーム・編集モード・実寸m・アレルギー⚠）
-- `src/components/new-case-form.tsx` … 新規案件（進行表は見積テンプレから自動生成）
-- `src/components/settings-admin.tsx` … 会場・設備マスタ（実寸m）／ロゴ／待機画像
+- `src/app/live/[id]/…` … 当日運営（page=進行ボード・audio=プレイヤー・screen=映像ウィンドウ）。BroadcastChannel名 `ceremos-live-${caseId}`
+- `src/components/seating-panel.tsx` … 席次表エディタ（ズーム・編集モード・実寸m・アレルギー⚠）。案件画面はプレビュー、編集は `/cases/[id]/seating`
+- `src/components/day-venue-chart.tsx` + `assignments-panel.tsx` … 控室・厨房・スタッフ割当（📋進行タブ内 `#resources`。カレンダー日別でも使用）
+- `src/components/new-case-form.tsx` … 新規案件（テンプレ一式を選ぶと作成時に一括セットアップ。未選択なら見積作成時に選べる）
+- `src/components/settings-admin.tsx` … 会場・設備マスタ（実寸m）／ロゴ／待機画像。`/admin/catalog`=カタログ管理（`vendor-catalog.tsx`）
+- `src/app/login/page.tsx` … ログインのみ（ID+PW・全ロール共通）。DEMO_MODE時は検証用ワンクリックログイン
 - `src/lib/db-backup.ts` … 破壊的一括処理前の自動バックアップ（VACUUM INTO・backups/40世代）。復元=`node scripts/restore-db.cjs`
-- `src/app/(app)/cases/[id]/page.tsx` … 案件詳細（タブ廃止・全セクション1ページ・アンカーリンク。coupleには発注/料理/リソース/請求非表示）
 
 ## 設計上の約束事
+- **案件画面は5タブ／お客様4タブで固定**。新機能は既存タブ内のセクションとして追加し、タブは増やさない（変更はユーザー承認必須）
+- 新しい画面内リンクは `?tab=<新タブ名>#<anchor>` 形式。旧タブ名を新規コードで使わない
+- 見積ステータスは draft / confirmed / archived の3つだけ（判定は quote-status.ts の関数経由）。確定済みは直接編集せず「新Ver作成」
+- 価格・権限・検証はサーバーで強制（例: カタログ→見積反映はサーバーが定価を強制）
 - 進行表の時刻は「先頭時刻＋durationMinの積み上げ」で自動再計算（編集APIは必ずrecalc）
 - テンプレ台本の {新郎}{新婦}{新郎姓}{新婦姓} は適用時に実名置換
 - 見積テンプレ名のキーワードが自動セットアップに連動（ガーデン→②、和婚→⑦、宴会/式典/パーティ/ディナーショー→⑪ など）
-- 進行表の楽曲は「（曲未定）」行=枠として全シーンON。選曲は楽曲タブのみ（進行表から曲編集しない）
+- 進行表の楽曲は「（曲未定）」行=枠として全シーンON。選曲は選曲セクションのみ（進行表から曲編集しない）
 - 音量初期70／F.O初期2秒／cueTimingはシーン別プリセット
-- 新規案件作成では進行表を作らない（見積テンプレ保存時に自動作成）
-- 価格・権限・検証はサーバーで強制（例: カタログ→見積反映はサーバーが定価を強制）。確定済み見積は直接編集せず「新Ver作成」
+- 新規案件作成では進行表を作らない（テンプレ一式の適用時または見積テンプレ保存時に自動作成）
+- 婚礼用語（新郎/新婦/両家）を画面に直書きしない。`t()`か `isBridal()` 分岐を通す（MC台本バンク・印刷帳票は除く）
+- 削除済み機能（営業OS・AI生成・公開カタログ・業者ログイン・セルフ登録・承認）は復活させない。一覧は `docs/仕様_現行.md` 7章
 
 ## 運用ルール
 - 実装履歴は docs/CHANGELOG.md の先頭に追記（日付・何を・なぜ・検証結果）

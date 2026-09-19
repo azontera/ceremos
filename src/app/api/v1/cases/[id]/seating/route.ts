@@ -52,7 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const b = await req.json().catch(() => ({}));
   const caseId = params.id;
 
-  // 担当分担の強制（リニューアル仕様書3.3）：お客様は自分の側（新郎側/新婦側）のゲストのみ操作可
+  // 担当分担の強制（docs/仕様_現行.md 3章）：お客様は自分の側（新郎側/新婦側）のゲストのみ操作可
   let coupleSide: "groom" | "bride" | null = null;
   if (s.role === "couple") {
     const [u, cs, m] = await Promise.all([

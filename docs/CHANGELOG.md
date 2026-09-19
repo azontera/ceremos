@@ -3,6 +3,18 @@
 旧CLAUDE.mdから2026-07-09に移設（原文のまま・掲載順は概ね新しい順だが一部前後あり）。
 **以後のセッションの実装記録は、このファイルの先頭（この行の下）に追記する。CLAUDE.mdには書かない。**
 
+## 2026-09-19（フェーズ2：残った製品を「シンプル・一貫・最終形」に整える）
+フェーズ1で機能を削った後の画面を整理し、案件画面のタブ構成を確定した（以後の変更はユーザー承認必須・CLAUDE.md／docs/仕様_現行.md に明記）。
+- **案件画面（cases/[id]/page.tsx）**: スタッフ5タブ＝📌案件(info)／💰お金(money)／🪑席次／📋進行(rundown)／💬連絡(chat)、お客様4タブ＝💰お見積り／🪑席次／📋当日の流れ／💬連絡に固定。独立タブだった打ち合わせ・選曲・リソース・えらぶを各タブ内セクション（`.section-h`+id）へ統合。📌案件は 基本情報→お客様アカウント→打ち合わせ→タスク・チェックリスト→ヒヤリング回答（閲覧・6項目超は折りたたみ）→アフター→失注（最下部）の業務順。💰お金＝見積→カタログ→発注→料理・アレルギー→請求・入金。📋進行＝進行表・MC台本→選曲→控室・厨房・スタッフ割当（DayVenueChart＋Assignments）。💬連絡＝チャット＋案件添付（基本情報カードから移設、`attachmentsSlot` は省略可に）。旧タブ名（quotes/catalog/orders/meals/billing/songs/resources/meetings/after/steps…）は `TAB_ALIAS` で新タブ＋アンカーへサーバー側リダイレクト。タブ内リンク（進行表↔選曲、カタログ→見積）は `#anchor` に変更。タブごとに必要なデータだけ取得するよう Promise.all を条件化。未使用の section-modal.tsx と関連CSSを削除
+- **?tab= リンクの追従**: dashboard（quotes→money／billing→money#billing／orders→money#orders／songs→rundown#songs）、通知API（billing）、live/audio の戻り先、audio-console「終了」、songs-panel／rundown-editor／catalog-panel の相互リンク、mobile-nav
+- **ナビ**: サイドバー＝ダッシュボード／案件／カレンダー／顧客／管理（テンプレート・カタログ管理、adminはユーザー・マスタ・設定・操作履歴）／成果。お客様スマホ下部ナビ＝ホーム／お見積り／席次／当日の流れ／連絡（`.mnav-item` を flex:1 にして6項目を1行に）
+- **ダッシュボード**: スタッフは 未対応クレーム／件数（本日・今週・未処理タスク・見積下書き＆未入金）／今日の予定・今週の開催／タスク（期限超過を先頭）／見積下書き中（案件ごと・?tab=money）／未入金（?tab=money#billing）に絞り、新着チャット・発注状況カードを撤去（`getDashboard` から orders/recentMessages 取得を削除、draftQuotes は件数→案件リスト）。お客様「今やること」に次回打ち合わせ日を追加、クイックリンクを4タブ＋ヒヤリングに統一
+- **ログイン**: 文言を「お客様・スタッフ共通の入口」に整理（婚礼限定表現を除去）
+- **新規案件フォーム**: 「作成と同時に自動セットアップ」（テンプレ一式選択時＝apply-pack API）と「見積タブで保存時に自動セットアップ」（未選択時＝quotes API の packId）の両方が正で、文言を両立する形に統一。recent-quick API 依存のブロックはフェーズ1で削除済みを確認
+- **用語**: タスク1〜5で触れた画面の 新郎/新婦/両家 直書きを監査。すべて caseType 分岐か `t()` 経由で、再生プレイヤーの「おふたりの」のみ中立表現に修正
+- **ドキュメント**: CLAUDE.md の主要ファイルマップ／設計上の約束事を現行コードに合わせて全面改訂（タブ固定を明記）。`docs/リニューアル仕様書_v1.md` を廃止し `docs/仕様_現行.md` を新設。TODO に本番反映時の削除パス一覧を追記
+- 検証：`npx tsc --noEmit` 全通過（サンドボックスのため build・DB・ブラウザ確認は未実施。本番反映後に案件画面の各タブとアンカージャンプ、スマホ下部ナビの6項目表示を確認すること）
+
 ## 2026-09-19（フェーズ1：「受注〜当日運営ERP」への絞り込み・機能削除）
 オーナー決定により営業OS層・セルフ登録・業者ログイン等を削除（コミットA〜H、削除37ファイル・-5,800行）。DBカラムはデータ保全のため残置（hearingJson / lostStep / approved / emailVerified / User.vendorId / Case.slot）。
 - **A 営業OS層削除**: AIヒヤリング診断（hearing.ts・hearing wizard・/print/[id]/fortune・fortune-print.ts）、AIプラン取込（ai-plan-import・hearing/md）、顧客攻略（strategy-panel）、商談ステップ（sales-steps.ts→LOST_REASONSはcase-types.tsへ移設、成果ダッシュボードの「ステップ別失注」カード削除）、TabAdvice、お客様プランウィザード（customer-wizard）、見積おすすめ（quote-recommend）。楽曲好み診断（10問）は「🎯 好みのアーティスト」ブロックに縮小（groom/brideArtistsの+30ブーストのみ残し、song-db.tsのERA/CLASSIC等のスコアリングを削除）
