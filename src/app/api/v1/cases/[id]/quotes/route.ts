@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             category: i.category || "other",
             qty: Number(i.qty || 1),
             unitPrice: Number(i.unitPrice || 0),
-            vendorId: i.vendorId || null, // 発注先（承認時に発注を自動作成）
+            vendorId: i.vendorId || null, // 発注先（確定時に発注を自動作成）
           })),
         },
       },

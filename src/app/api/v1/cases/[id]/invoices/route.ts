@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const amount = Number(b.amount ?? 0);
   if (!amount || amount <= 0) return NextResponse.json({ error: "金額を入力してください" }, { status: 400 });
 
-  // 見積から明細を転記（承認済み優先・なければ最新の非アーカイブ）
+  // 見積から明細を転記（確定済み優先・なければ最新の非アーカイブ）
   let itemsJson: string | null = null;
   if (b.fromQuote) {
     const quote =

@@ -1,6 +1,6 @@
 "use client";
 // ===== 検証用バー（DEMO_MODE=1 のときだけレイアウトから描画される）=====
-// 時間を進める（承認猶予10時間の検証用）＋ワンクリックでアカウント切替
+// 時間を進める（期限・D-day判定などの検証用）＋ワンクリックでアカウント切替
 // 本番では .env に DEMO_MODE を設定しないため表示されない
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";

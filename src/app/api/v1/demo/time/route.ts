@@ -1,5 +1,5 @@
 // ===== 検証用「時間を進める」API（DEMO_MODE=1 のときだけ有効）=====
-// 承認猶予（10時間）の検証などに使う仮想時計。Setting demo_time_offset_ms に加算分を保存する。
+// 期限判定などの検証に使う仮想時計。Setting demo_time_offset_ms に加算分を保存する。
 // 本番では .env に DEMO_MODE を設定しない（=無効）。
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";

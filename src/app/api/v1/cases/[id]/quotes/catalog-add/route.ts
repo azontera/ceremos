@@ -4,7 +4,7 @@
 // ・値引きはプランナー以上が見積編集（unitPrice変更・値引行の追加）で行う
 // ・「最後の反映が正しい」＝常に最新バージョンへ反映する：
 //   最新が下書き → その下書きに追記（同じ品目は数量加算）
-//   最新が確認済/承認済 → 明細を引き継いだ新バージョン（下書き）を作成して追記
+//   最新が確定済 → 明細を引き継いだ新バージョン（下書き）を作成して追記
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       include: { items: true },
     });
   } else {
-    // 確認済み/承認済み or 見積なし → 新バージョン（下書き）を作成して反映
+    // 確定済み or 見積なし → 新バージョン（下書き）を作成して反映
     quote = await prisma.quote.create({
       data: {
         caseId: params.id,

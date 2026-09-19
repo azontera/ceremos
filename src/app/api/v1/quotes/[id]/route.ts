@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 import { can, canAccessCase, audit } from "@/lib/rbac";
 
 // PATCH: 下書き見積の明細をその場で編集（バージョンは増やさない）
-// 確認済み・承認済みになった見積は履歴保護のため編集不可（新しいバージョンを作成してください）
+// 確定済みの見積は履歴保護のため編集不可（新しいバージョンを作成してください）
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -46,7 +46,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE: 見積バージョンの削除
-// 承認済みは削除不可（先に「承認を取り消す」で差し戻してから）
+// 確定済みは削除不可（先に「確定を取り消す」で下書きに戻してから）
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });

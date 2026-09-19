@@ -2,7 +2,7 @@
 // 🛍 カタログ：会場費・ドレス・料理・引き出物・その他を「カタログを見て」見積に追加できる
 // ・お客様も利用可（定価でのみ追加。価格はサーバー側で強制）
 // ・プランナーの値引きは見積タブの編集（単価変更・値引行）で行う
-// ・追加は常に最新見積へ反映（下書き=追記／確認済み・承認済み=新バージョン作成）＝最後の反映が見積カードに必ず載る
+// ・追加は常に最新見積へ反映（下書き=追記／確定済み=新バージョン作成）＝最後の反映が見積カードに必ず載る
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -85,7 +85,7 @@ export function CatalogPanel({
       <div className="card" style={{ padding: "12px 16px", marginBottom: 14, fontSize: 12.5, lineHeight: 1.9 }}>
         🛍 カタログから選ぶだけで、そのままお見積りに反映されます。
         {isCouple
-          ? <>価格は<b>定価</b>での追加となります。値引き・特典はプランナーが承認時に調整いたします。</>
+          ? <>価格は<b>定価</b>での追加となります。値引き・特典はプランナーが確定時に調整いたします。</>
           : <>お客様は定価でのみ追加できます。<b>値引きは見積タブの編集</b>（単価変更・値引行の追加）で行ってください。</>}
         <Link href={`/cases/${caseId}?tab=quotes`} style={{ marginLeft: 6 }}>→ 見積カードを見る</Link>
       </div>
