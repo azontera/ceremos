@@ -21,7 +21,7 @@ export function BillingPanel({
 }: {
   caseId: string; canEdit: boolean;
   plans: Plan[]; invoices: Invoice[];
-  approvedTotal: number | null; // 承認済み見積の合計（請求書作成の初期値）
+  approvedTotal: number | null; // 確定見積の合計（請求書作成の初期値）
   customerName?: string; // CSV・請求書印刷の取引先名
 }) {
   const router = useRouter();
@@ -79,7 +79,7 @@ export function BillingPanel({
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-h">
           支払予定
-          {approvedTotal !== null && <span className="pill gray">承認済見積 {yen(approvedTotal)}</span>}
+          {approvedTotal !== null && <span className="pill gray">確定見積 {yen(approvedTotal)}</span>}
           {planTotal > 0 && <span className={`pill ${approvedTotal !== null && planTotal !== approvedTotal ? "amber" : "green"}`}>予定合計 {yen(planTotal)}</span>}
           <div style={{ flex: 1 }} />
           {canEdit && !editingPlans && <button className="btn sm" onClick={startEditPlans}>{initialPlans.length ? "編集" : "＋ 設定"}</button>}

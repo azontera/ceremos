@@ -248,9 +248,9 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className="card kpi">
-          <div className="k-label">見積承認待ち</div>
-          <div className="k-val" style={{ color: d.pendingQuotes ? "var(--amber)" : undefined }}>{d.pendingQuotes}</div>
-          <div className="k-sub">最終承認は支配人</div>
+          <div className="k-label">見積 下書き中</div>
+          <div className="k-val" style={{ color: d.draftQuotes ? "var(--amber)" : undefined }}>{d.draftQuotes}</div>
+          <div className="k-sub">確定前の見積バージョン</div>
         </div>
       </div>
 

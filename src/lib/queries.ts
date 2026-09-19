@@ -19,7 +19,7 @@ export async function getDashboard(s: Session) {
   ).map((c) => c.id);
   const inScope = { caseId: { in: scopedCaseIds } };
 
-  const [todayEvents, weekList, openTasks, pendingQuotes, orders, recentMessages, unpaidInvoices] =
+  const [todayEvents, weekList, openTasks, draftQuotes, orders, recentMessages, unpaidInvoices] =
     await Promise.all([
       prisma.calendarEvent.findMany({
         where: { ...inScope, startsAt: { gte: today.from, lt: today.to } },
@@ -37,7 +37,7 @@ export async function getDashboard(s: Session) {
         orderBy: { dueAt: "asc" },
         take: 8,
       }),
-      prisma.quote.count({ where: { ...inScope, status: "confirmed" } }),
+      prisma.quote.count({ where: { ...inScope, status: "draft" } }),
       prisma.order.findMany({ where: inScope, include: { case: true } }),
       prisma.chatMessage.findMany({
         where: { ...inScope, NOT: { senderId: s.userId } },
@@ -84,7 +84,7 @@ export async function getDashboard(s: Session) {
   }
 
   return {
-    todayEvents, todayWeddings, weekWeddings: weekList.length, weekList, openTasks, pendingQuotes,
+    todayEvents, todayWeddings, weekWeddings: weekList.length, weekList, openTasks, draftQuotes,
     openClaims: openClaims.map((f) => ({
       id: f.id, caseId: f.caseId, body: f.body, at: f.createdAt,
       caseLabel: `${f.case.groomName.split(" ")[0]}様${f.case.brideName !== "―" ? `・${f.case.brideName.split(" ")[0]}様` : ""}`,

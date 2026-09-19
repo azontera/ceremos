@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { QUOTE_CONFIRMED_STATUSES } from "@/lib/quote-status";
 import { getSession } from "@/lib/auth";
 import { can, canAccessCase, audit } from "@/lib/rbac";
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let itemsJson: string | null = null;
   if (b.fromQuote) {
     const quote =
-      (await prisma.quote.findFirst({ where: { caseId: params.id, status: "approved" }, include: { items: true }, orderBy: { version: "desc" } })) ??
+      (await prisma.quote.findFirst({ where: { caseId: params.id, status: { in: QUOTE_CONFIRMED_STATUSES } }, include: { items: true }, orderBy: { version: "desc" } })) ??
       (await prisma.quote.findFirst({ where: { caseId: params.id, status: { not: "archived" } }, include: { items: true }, orderBy: { version: "desc" } }));
     if (quote && quote.items.length > 0) {
       itemsJson = JSON.stringify(

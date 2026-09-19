@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { LOST_REASONS } from "@/lib/case-types";
+import { isQuoteConfirmed } from "@/lib/quote-status";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,8 @@ export default async function ReportsPage() {
   });
 
   const won = (c: (typeof cases)[number]) =>
-    c.quotes.some((q) => q.status === "approved") || ["planning", "final_prep", "done"].includes(c.status);
-  const approvedTotal = (c: (typeof cases)[number]) => c.quotes.find((q) => q.status === "approved")?.total ?? null;
+    c.quotes.some((q) => isQuoteConfirmed(q.status)) || ["planning", "final_prep", "done"].includes(c.status);
+  const approvedTotal = (c: (typeof cases)[number]) => c.quotes.find((q) => isQuoteConfirmed(q.status))?.total ?? null;
 
   // プランナー別集計
   const byPlanner = new Map<string, { name: string; total: number; won: number; lost: number; sales: number[] }>();
@@ -64,10 +65,10 @@ export default async function ReportsPage() {
       </div>
 
       <div className="grid cols-4">
-        <div className="card kpi"><div className="k-label">成約</div><div className="k-val">{totalWon}<span style={{ fontSize: 14, color: "var(--text3)" }}> 件</span></div><div className="k-sub">見積承認ベース</div></div>
+        <div className="card kpi"><div className="k-label">成約</div><div className="k-val">{totalWon}<span style={{ fontSize: 14, color: "var(--text3)" }}> 件</span></div><div className="k-sub">見積確定ベース</div></div>
         <div className="card kpi"><div className="k-label">失注</div><div className="k-val" style={{ color: totalLost ? "var(--red)" : undefined }}>{totalLost}<span style={{ fontSize: 14, color: "var(--text3)" }}> 件</span></div><div className="k-sub">理由の記録あり {lostCases.filter((c) => c.lostReason).length}件</div></div>
         <div className="card kpi"><div className="k-label">成約率</div><div className="k-val">{closedAll ? Math.round((totalWon / closedAll) * 100) : "—"}<span style={{ fontSize: 14, color: "var(--text3)" }}> %</span></div><div className="k-sub">成約 ÷（成約＋失注）</div></div>
-        <div className="card kpi"><div className="k-label">平均単価</div><div className="k-val" style={{ fontSize: 20 }}>{allSales.length ? yen(allSales.reduce((a, b) => a + b, 0) / allSales.length) : "—"}</div><div className="k-sub">承認見積の平均</div></div>
+        <div className="card kpi"><div className="k-label">平均単価</div><div className="k-val" style={{ fontSize: 20 }}>{allSales.length ? yen(allSales.reduce((a, b) => a + b, 0) / allSales.length) : "—"}</div><div className="k-sub">確定見積の平均</div></div>
       </div>
 
       <div className="grid cols-2" style={{ marginTop: 16 }}>

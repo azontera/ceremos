@@ -235,7 +235,7 @@ model ChatRead {
   @@id([messageId, userId])
 }
 
-// status: draft / confirmed / approved / archived
+// status: draft / confirmed（確定） / archived（旧バージョン）。旧データの approved / customer_confirmed は confirmed として読む
 model Quote {
   id        String      @id @default(cuid())
   caseId    String

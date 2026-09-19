@@ -7,6 +7,7 @@ import { computeProgress, daysUntil, ddayLabel } from "@/lib/progress";
 import { typeMeta } from "@/lib/case-types";
 import { getMasterOptions } from "@/lib/masters";
 import { SURVEY_ALL } from "@/lib/survey";
+import { isQuoteConfirmed } from "@/lib/quote-status";
 
 const SURVEY_LABEL: Record<string, string> = Object.fromEntries(
   SURVEY_ALL.map((sv) => [sv.key, sv.q.replace(/^\d+\.\s*/, "")]),
@@ -64,12 +65,6 @@ const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: "未確定", cls: "red" },
   confirmed: { label: "確定", cls: "green" },
   delivered: { label: "納品済", cls: "green" },
-};
-const QUOTE_STATUS: Record<string, { label: string; cls: string }> = {
-  draft: { label: "下書き", cls: "gray" },
-  confirmed: { label: "お客様 確認済", cls: "amber" },
-  approved: { label: "承認済", cls: "green" },
-  archived: { label: "アーカイブ", cls: "gray" },
 };
 
 const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
@@ -166,7 +161,7 @@ export default async function CaseDetailPage({
     : [[], [], []];
 
   const jump: Record<string, string> = {
-    "見積承認": "quotes", "発注確定": "quotes",
+    "見積確定": "quotes", "発注確定": "quotes",
     "楽曲決定": "rundown", "席次確定": "seating", "進行表作成": "rundown",
   };
 
@@ -423,10 +418,8 @@ export default async function CaseDetailPage({
       )}
       <QuotesPanel
         caseId={c.id}
-        caseType={c.caseType}
         guestCount={c.guestCount}
         canEdit={can(s.role, "quotes", "edit")}
-        canApprove={["admin", "manager"].includes(s.role)}
         vendors={vendors.map((v) => ({ id: v.id, name: v.name }))}
         categories={quoteCategories}
         quotes={c.quotes.map((q) => ({
@@ -468,7 +461,7 @@ export default async function CaseDetailPage({
           <BillingPanel
             caseId={c.id}
             canEdit={can(s.role, "quotes", "edit")}
-            approvedTotal={c.quotes.find((q) => q.status === "approved")?.total ?? null}
+            approvedTotal={c.quotes.find((q) => isQuoteConfirmed(q.status))?.total ?? null}
             plans={paymentPlans.map((p) => ({ id: p.id, label: p.label, amount: p.amount, dueAt: p.dueAt ? p.dueAt.toISOString() : null }))}
             invoices={invoices.map((i) => ({
               id: i.id, number: i.number, issuedAt: i.issuedAt.toISOString(),

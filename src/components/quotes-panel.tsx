@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { scaleQuoteItems } from "@/lib/pack-scaling";
-import { t as term } from "@/lib/terms";
+import { normalizeQuoteStatus, QUOTE_STATUS_LABEL } from "@/lib/quote-status";
 
 type Item = { id?: string; name: string; category: string; qty: number; unitPrice: number; vendorId?: string | null; perGuest?: number | boolean };
 type Quote = {
@@ -10,13 +10,6 @@ type Quote = {
   createdAt: string; items: Item[];
 };
 
-// 「confirmed」の表示名は案件タイプ連動（婚礼=新郎新婦／宴会=主催者）のため関数化
-const statusMap = (caseType?: string): Record<string, { label: string; cls: string }> => ({
-  draft: { label: "下書き", cls: "gray" },
-  confirmed: { label: `${term("couple", caseType)} 確認済`, cls: "amber" },
-  approved: { label: "承認済", cls: "green" },
-  archived: { label: "アーカイブ", cls: "gray" },
-});
 const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 
 // 部門（カテゴリ）定義 — この順で表示
@@ -28,15 +21,13 @@ export const QUOTE_CATEGORIES: [string, string][] = [
   ["discount", "値引・特典"], ["other", "その他"],
 ];
 export function QuotesPanel({
-  caseId, quotes, canEdit, canApprove, vendors = [], categories, guestCount = 0, caseType,
+  caseId, quotes, canEdit, vendors = [], categories, guestCount = 0,
 }: {
-  caseId: string; quotes: Quote[]; canEdit: boolean; canApprove: boolean;
+  caseId: string; quotes: Quote[]; canEdit: boolean;
   vendors?: { id: string; name: string }[];
   categories?: [string, string][]; // 部門マスタ（未指定は既定値）
   guestCount?: number; // 案件の予定人数（テンプレ選択時に「× ◯名」品目の数量を自動調整）
-  caseType?: string; // 用語切替（婚礼以外は「主催者」等の宴会用語）
 }) {
-  const STATUS = statusMap(caseType);
   const CATS = categories && categories.length > 0 ? categories : QUOTE_CATEGORIES;
   const catLabel = (c: string) => CATS.find(([v]) => v === c)?.[1] ?? "その他";
   const catOrder = (c: string) => {
@@ -368,7 +359,7 @@ export function QuotesPanel({
                   <td style={{ whiteSpace: "nowrap" }}>{yen((it.qty || 0) * (it.unitPrice || 0))}</td>
                   <td>
                     <select className="form-input" style={{ padding: "6px 8px" }} value={it.vendorId ?? ""}
-                      title="発注先を設定すると、見積承認時に発注書が自動作成されます"
+                      title="発注先を設定すると、見積確定時に発注書が自動作成されます"
                       onChange={(e) => setItem(i, { vendorId: e.target.value || null })}>
                       <option value="">自社</option>
                       {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
@@ -408,7 +399,8 @@ export function QuotesPanel({
           <tbody>
             {quotes.length === 0 && <tr><td colSpan={6} className="empty">見積はまだありません</td></tr>}
             {quotes.map((q) => {
-              const st = STATUS[q.status] ?? { label: q.status, cls: "gray" };
+              const qs = normalizeQuoteStatus(q.status);
+              const st = QUOTE_STATUS_LABEL[qs];
               return (
                 <tr key={q.id}>
                   <td><b>Ver.{q.version}</b></td>
@@ -417,11 +409,11 @@ export function QuotesPanel({
                   <td>{q.note ?? "—"}</td>
                   <td><span className={`pill ${st.cls}`}>{st.label}</span></td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    {canEdit && q.status === "draft" && !editing && (
+                    {canEdit && qs === "draft" && !editing && (
                       <button className="btn sm" onClick={() => startEdit(q)}>編集</button>
                     )}{" "}
-                    {/* 確認済・承認済は履歴保護のため直接編集できない → この内容を引き継いだ新バージョンをすぐ編集できる */}
-                    {canEdit && ["confirmed", "approved"].includes(q.status) && !editing && (
+                    {/* 確定済は履歴保護のため直接編集できない → この内容を引き継いだ新バージョンをすぐ編集できる */}
+                    {canEdit && qs === "confirmed" && !editing && (
                       <button className="btn sm" title="この内容を引き継いで、新しいバージョン（下書き）として編集します"
                         onClick={() => {
                           setErr(""); setEditQuoteId(null); setNote("");
@@ -431,22 +423,18 @@ export function QuotesPanel({
                           setTplChoices(null); setEditing(true);
                         }}>✏ 編集（新Ver作成）</button>
                     )}{" "}
-                    {canEdit && q.status === "draft" && (
-                      <button className="btn sm" onClick={() => setStatus(q.id, "confirmed")}>確認済にする</button>
+                    {canEdit && qs === "draft" && (
+                      <button className="btn sm primary" title="この見積を確定します（他のバージョンは旧バージョンになり、業者紐付き品目から発注が自動作成されます）"
+                        onClick={() => setStatus(q.id, "confirmed")}>確定する</button>
                     )}
-                    {q.status === "confirmed" && (
-                      canApprove
-                        ? <button className="btn sm primary" onClick={() => setStatus(q.id, "approved")}>承認する</button>
-                        : <span className="pill amber">支配人の承認待ち</span>
-                    )}
-                    {q.status === "approved" && canApprove && (
-                      <button className="btn sm" title={`承認を取り消して「${term("couple", caseType)}確認済」に差し戻します`}
-                        onClick={() => { if (confirm(`Ver.${q.version} の承認を取り消しますか？`)) setStatus(q.id, "confirmed"); }}>承認を取り消す</button>
+                    {canEdit && qs === "confirmed" && (
+                      <button className="btn sm" title="確定を取り消して下書きに戻します（見積連動で作成した未確定の発注は削除されます）"
+                        onClick={() => { if (confirm(`Ver.${q.version} の確定を取り消しますか？`)) setStatus(q.id, "draft"); }}>確定を取り消す</button>
                     )}{" "}
-                    {canEdit && q.status === "archived" && (
+                    {canEdit && qs === "archived" && (
                       <button className="btn sm" onClick={() => setStatus(q.id, "draft")}>下書きに戻す</button>
                     )}{" "}
-                    {canEdit && q.status !== "approved" && (
+                    {canEdit && qs !== "confirmed" && (
                       <button className="btn sm" onClick={async () => {
                         if (!confirm(`Ver.${q.version}（${yen(q.total)}）を削除しますか？この操作は取り消せません`)) return;
                         const res = await fetch(`/api/v1/quotes/${q.id}`, { method: "DELETE" });

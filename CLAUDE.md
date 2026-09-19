@@ -28,7 +28,7 @@ rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclu
 ## 主要ファイルマップ
 - テンプレは**テンプレ一式（type="pack"）JSON方式**（内蔵テンプレ廃止済み）: `src/lib/template-pack.ts`（parsePack/scorePack/applyPackToCase）・管理画面からJSONを読み込み。JSON要件=`docs/template-pack-spec.md`
 - `src/app/api/v1/cases/[id]/quotes/route.ts` … 見積保存時の自動セットアップ（料理／席次／リソース／進行表適用）
-- `src/components/quotes-panel.tsx` … 見積UI（新規=ウィザード、確認済/承認済は「新Ver作成」で編集）
+- `src/components/quotes-panel.tsx` … 見積UI（新規=ウィザード、確定済は「新Ver作成」で編集。ステータスは draft/confirmed/archived の3つ・`src/lib/quote-status.ts`）
 - `src/lib/rundown.ts` … recalcRundownTimes / fillNameTokens / applyRundownTemplateToCase / sceneForTitle
 - `src/lib/cue-timings.ts` `src/lib/menu-presets.ts` `src/lib/song-db.ts`（好みアーティスト+30ブースト）
 - `src/components/songs-panel.tsx` … 選曲専用。🎲全曲おまかせ／♪全シーンに曲枠作成／⏱cueTiming

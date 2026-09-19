@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { isQuoteConfirmed } from "@/lib/quote-status";
 import { getSession } from "@/lib/auth";
 import { can, canAccessCase, audit } from "@/lib/rbac";
 
@@ -55,8 +56,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!can(s.role, "quotes", "edit") || !(await canAccessCase(s, q.caseId))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  if (q.status === "approved") {
-    return NextResponse.json({ error: "承認済みの見積は削除できません。先に「承認を取り消す」で差し戻してください" }, { status: 400 });
+  if (isQuoteConfirmed(q.status)) {
+    return NextResponse.json({ error: "確定済みの見積は削除できません。先に「確定を取り消す」で下書きに戻してください" }, { status: 400 });
   }
   await prisma.quote.delete({ where: { id: params.id } }); // 明細は cascade で削除
   // 復元できるよう明細スナップショットを監査ログに記録

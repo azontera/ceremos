@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { can, canAccessCase, audit } from "@/lib/rbac";
+import { normalizeQuoteStatus } from "@/lib/quote-status";
 
-// POST: 見積の状態遷移 draft → confirmed → approved
-// confirmed（新郎新婦確認済）: quotes 編集権
-// approved（最終承認）: 支配人・管理者のみ
+// POST: 見積の状態遷移 draft ⇄ confirmed（確定）／ archived（旧バージョン）
+// 確定・取り消しは quotes 編集権（プランナー以上）。旧データの approved は confirmed として扱う
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -13,36 +13,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const q = await prisma.quote.findUnique({ where: { id: params.id } });
   if (!q) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (!(await canAccessCase(s, q.caseId))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!can(s.role, "quotes", "edit")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const { status } = await req.json().catch(() => ({}));
+  const cur = normalizeQuoteStatus(q.status);
   const valid: Record<string, string[]> = {
     draft: ["confirmed", "archived"],
-    confirmed: ["approved", "draft", "archived"],
-    approved: ["archived", "confirmed"], // confirmed へ = 承認の取り消し（差し戻し）
-    archived: ["draft"], // アーカイブからの復元
+    confirmed: ["draft", "archived"], // draft へ = 確定の取り消し
+    archived: ["draft"], // 旧バージョンからの復元
   };
-  if (!valid[q.status]?.includes(status)) {
-    return NextResponse.json({ error: `「${q.status}」から「${status}」へは変更できません` }, { status: 400 });
-  }
-  if (status === "approved" && !["admin", "manager"].includes(s.role)) {
-    return NextResponse.json({ error: "最終承認は支配人または管理者のみ可能です" }, { status: 403 });
-  }
-  if (q.status === "approved" && !["admin", "manager"].includes(s.role)) {
-    return NextResponse.json({ error: "承認の取り消しは支配人または管理者のみ可能です" }, { status: 403 });
-  }
-  if (!can(s.role, "quotes", "edit") && !["admin", "manager"].includes(s.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!valid[cur]?.includes(status)) {
+    return NextResponse.json({ error: `「${cur}」から「${status}」へは変更できません` }, { status: 400 });
   }
   const updated = await prisma.quote.update({ where: { id: params.id }, data: { status } });
-  // 承認取り消し時：見積連動で自動作成した未確定の発注を削除（見積と発注の乖離を防ぐ。再承認時に作り直される）
-  if (q.status === "approved" && status === "confirmed") {
+  // 確定取り消し時：見積連動で自動作成した未確定の発注を削除（見積と発注の乖離を防ぐ。再確定時に作り直される）
+  if (cur === "confirmed" && status === "draft") {
     const removed = await prisma.order.deleteMany({
       where: { caseId: q.caseId, status: "pending", note: { startsWith: "【見積連動】" } },
     });
     if (removed.count > 0) await audit(s.userId, "auto-order-cleanup", "quote", q.id, { removed: removed.count });
   }
-  // 承認時は他バージョンをアーカイブ＋業者紐づき品目から発注書を自動作成
-  if (status === "approved") {
+  // 確定時は他バージョンをアーカイブ＋業者紐づき品目から発注書を自動作成
+  if (status === "confirmed") {
     await prisma.quote.updateMany({
       where: { caseId: q.caseId, id: { not: q.id }, status: { not: "archived" } },
       data: { status: "archived" },
