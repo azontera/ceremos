@@ -28,10 +28,10 @@ async function resolveCaseId(parentType: string, parentId: string): Promise<stri
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const att = await prisma.attachment.findUnique({ where: { id: params.id } });
   if (!att) return NextResponse.json({ error: "not found" }, { status: 404 });
-  // カタログ画像は公開（/catalog をURL共有で誰でも閲覧できるようにするため、ログイン不要）
+  const s = await getSession();
+  if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // カタログ画像はログイン済みなら誰でも閲覧可（案件内カタログで使用）。それ以外は案件メンバーのみ
   if (att.parentType !== "catalog") {
-    const s = await getSession();
-    if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const caseId = await resolveCaseId(att.parentType, att.parentId);
     if (!caseId || !(await canAccessCase(s, caseId))) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
