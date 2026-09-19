@@ -531,7 +531,7 @@ export function AudioConsole({ caseId, title, sub }: { caseId: string; title: st
           </button>
           {/* 待機画像：動画を再生していない間、映像ウィンドウに投影される */}
           <label className="btn" style={{ cursor: "pointer" }}
-            title="動画が流れていない時に映像ウィンドウへ投影する画像（おふたりのロゴ・ウェルカム画像など）をその場で設定">
+            title="動画が流れていない時に映像ウィンドウへ投影する画像（お客様のロゴ・ウェルカム画像など）をその場で設定">
             🖼 待機画像
             <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }}
               onChange={async (e) => {
