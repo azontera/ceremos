@@ -13,7 +13,7 @@ const yen = (n: number) => `¥${Math.round(n).toLocaleString("ja-JP")}`;
 export default async function ReportsPage() {
   const s = await getSession();
   if (!s) redirect("/login");
-  if (s.role === "couple" || s.vendorId) redirect("/dashboard");
+  if (s.role === "couple") redirect("/dashboard");
 
   const cases = await prisma.case.findMany({
     include: {

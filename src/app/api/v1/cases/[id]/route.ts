@@ -72,9 +72,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     },
   });
   if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
-
-  // 業者ロールは自社発注のみに絞る（リソーススコープ）
-  if (s.vendorId) c.orders = c.orders.filter((o) => o.vendorId === s.vendorId);
   return NextResponse.json({ case: c });
 }
 

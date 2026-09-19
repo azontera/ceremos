@@ -15,9 +15,7 @@ const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 export default async function VendorPrintPage({ params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) redirect("/login");
-  const isOwn = s.vendorId === params.id;
-  const isStaff = ["admin", "manager", "planner"].includes(s.role);
-  if (!isOwn && !isStaff) redirect("/dashboard");
+  if (!["admin", "manager", "planner"].includes(s.role)) redirect("/dashboard");
 
   const vendor = await prisma.vendor.findUnique({ where: { id: params.id } });
   if (!vendor) notFound();
@@ -46,7 +44,7 @@ export default async function VendorPrintPage({ params }: { params: { id: string
 
       <div className="no-print" style={{ marginBottom: 20, display: "flex", gap: 8 }}>
         <PrintButton />
-        <a href={`/vendors/${vendor.id}`} style={{ fontSize: 13, alignSelf: "center" }}>← 業者ページに戻る</a>
+        <a href="/admin/users" style={{ fontSize: 13, alignSelf: "center" }}>← 業者マスタに戻る</a>
       </div>
 
       {byCase.size === 0 && <p>納品待ちの発注はありません。</p>}

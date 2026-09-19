@@ -93,10 +93,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const att = await prisma.attachment.findUnique({ where: { id: params.id } });
   if (!att) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (att.parentType === "catalog") {
-    // カタログ画像：スタッフまたは品目の所属業者のみ削除可
-    const item = await prisma.catalogItem.findUnique({ where: { id: att.parentId } });
+    // カタログ画像：スタッフのみ削除可
     const isStaff = ["admin", "manager", "planner"].includes(s.role);
-    if (!isStaff && !(s.vendorId && item && s.vendorId === item.vendorId)) {
+    if (!isStaff) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
   } else {

@@ -1,6 +1,6 @@
 // 業者カタログ API
 // GET: ログイン中の全ユーザー（お客様含む）が閲覧可。?category= で絞り込み
-// POST: 品目の作成 — スタッフは任意（vendorId=null は自社品目）、業者ユーザーは自社のみ
+// POST: 品目の作成 — スタッフのみ（vendorId=null は自社品目）
 //       出店（品目を持つ業者）は1カテゴリ最大3店舗までサーバー側で検証
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -37,15 +37,14 @@ export async function POST(req: NextRequest) {
   const s = await getSession();
   if (!s) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const isStaff = ["admin", "manager", "planner"].includes(s.role);
-  if (!isStaff && !s.vendorId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!isStaff) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const b = await req.json().catch(() => ({}));
 
   // ===== まとめて削除（bulk）：POST { bulkDelete: true, ids?: string[], all?: boolean, vendorId?: string|null } =====
   // ※ DELETEはbodyが届かない環境があるためPOSTで受ける。写真（Attachment＋実ファイル）も一緒に削除。
-  //   権限：スタッフ=全品目／業者ユーザー=自社品目のみ（対象を権限のあるものだけに絞ってから削除）。
   if (b.bulkDelete) {
-    let where: { id?: { in: string[] }; vendorId?: string | null } = {};
+    const where: { id?: { in: string[] }; vendorId?: string | null } = {};
     if (Array.isArray(b.ids) && b.ids.length > 0) {
       where.id = { in: b.ids.filter((x: unknown): x is string => typeof x === "string" && x.length > 0) };
       if (where.id.in.length === 0) return NextResponse.json({ error: "削除対象が指定されていません" }, { status: 400 });
@@ -55,9 +54,6 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({ error: "削除対象が指定されていません" }, { status: 400 });
     }
-    // 業者ユーザーは自社品目のみに強制
-    if (!isStaff) where = { ...where, vendorId: s.vendorId! };
-
     const targets = await prisma.catalogItem.findMany({ where, select: { id: true } });
     const ids = targets.map((t) => t.id);
     if (ids.length === 0) return NextResponse.json({ ok: true, count: 0 });
@@ -79,8 +75,8 @@ export async function POST(req: NextRequest) {
   const price = Math.max(0, Math.round(Number(b.price ?? 0)));
   if (!name) return NextResponse.json({ error: "品目名を入力してください" }, { status: 400 });
 
-  // 業者ユーザーは自社品目のみ／スタッフは任意（未指定=自社=式場品目）
-  const vendorId: string | null = isStaff ? (b.vendorId ? String(b.vendorId) : null) : s.vendorId!;
+  // 未指定=自社=式場品目
+  const vendorId: string | null = b.vendorId ? String(b.vendorId) : null;
 
   // 出店数の制限：このカテゴリに品目を持つ業者が既に3店舗あり、自分が未出店なら不可
   if (vendorId) {

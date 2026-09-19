@@ -172,7 +172,6 @@ const EVENT_PILL: Record<string, { label: string; cls: string }> = {
 export default async function DashboardPage() {
   const s = await getSession();
   if (!s) redirect("/login");
-  if (s.vendorId) redirect(`/vendors/${s.vendorId}`); // 業者は自社ダッシュボードへ
   if (s.role === "couple") return <CustomerHome userId={s.userId} name={s.name} />; // お客様専用ホーム
   // 式終了後の本番楽曲データ自動削除（1日1回・失敗してもページは表示）
   cleanupExpiredSongMedia().catch((e) => console.error("cleanupExpiredSongMedia failed:", e));

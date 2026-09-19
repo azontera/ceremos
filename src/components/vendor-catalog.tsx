@@ -1,6 +1,6 @@
 "use client";
-// 🏪 業者の自社カタログ管理（業者ページ・自社品目のCRUD＋画像アップロード）
-// スタッフ（プランナー以上）は全業者・式場品目も編集できる（管理画面の設定タブでも利用）
+// 🛍 カタログ品目の管理（式場品目・業者ごとの品目のCRUD＋画像アップロード）
+// スタッフ（プランナー以上）が管理画面（カタログ管理・設定）で利用
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 

@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-type MobileNavProps = { role: string; vendorId: string | null; pendingCount: number; coupleCaseId?: string | null };
+type MobileNavProps = { role: string; pendingCount: number; coupleCaseId?: string | null };
 
 // スマホ用の下部ナビゲーション（720px以下で表示）
 // サイドバーが隠れるスマホでも、親指だけで主要画面を行き来できるようにする
@@ -17,7 +17,7 @@ export function MobileNav(props: MobileNavProps) {
   );
 }
 
-function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNavProps) {
+function MobileNavInner({ role, pendingCount, coupleCaseId }: MobileNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -60,7 +60,6 @@ function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNa
       ["/admin/settings", "⚙️ 設定"],
       ["/admin/audit", "🕐 操作履歴"],
     ] as [string, string][] : []),
-    ...(vendorId ? [[`/vendors/${vendorId}`, "🏪 自社ページ"]] as [string, string][] : []),
     ...(role === "couple" && !coupleCaseId ? [["/survey", "📝 ヒヤリング"]] as [string, string][] : []),
     ["/me/password", "🔑 パスワード変更"],
   ];
@@ -109,7 +108,6 @@ function MobileNavInner({ role, vendorId, pendingCount, coupleCaseId }: MobileNa
             {item("/calendar", "📅", "カレンダー")}
             {isStaff3 && item("/approvals", "✅", "承認", pendingCount || undefined)}
             {role === "couple" && item("/survey", "📝", "ヒヤリング")}
-            {vendorId && item(`/vendors/${vendorId}`, "🏪", "自社")}
           </>
         )}
         <button className={`mnav-item ${menuOpen ? "active" : ""}`} onClick={() => setMenuOpen((o) => !o)}>

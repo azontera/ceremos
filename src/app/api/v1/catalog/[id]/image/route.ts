@@ -1,5 +1,5 @@
 // カタログ品目の画像アップロード（1品目1枚・差し替え式）
-// スタッフ＝全品目／業者ユーザー＝自社品目のみ
+// スタッフのみ
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const item = await prisma.catalogItem.findUnique({ where: { id: params.id } });
   if (!item) return NextResponse.json({ error: "not found" }, { status: 404 });
   const isStaff = ["admin", "manager", "planner"].includes(s.role);
-  if (!isStaff && !(s.vendorId && s.vendorId === item.vendorId)) {
+  if (!isStaff) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

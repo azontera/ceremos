@@ -93,7 +93,7 @@ export function CatalogPanel({
       {err && <div className="form-err" style={{ marginBottom: 10 }}>{err}</div>}
 
       {cats.length === 0 && (
-        <div className="card"><div className="empty">カタログはまだ登録されていません{isCouple ? "" : "（業者ページ・管理画面から品目を登録できます）"}</div></div>
+        <div className="card"><div className="empty">カタログはまだ登録されていません{isCouple ? "" : "（管理画面のカタログ管理から品目を登録できます）"}</div></div>
       )}
       {cats.length > 0 && (
         <>

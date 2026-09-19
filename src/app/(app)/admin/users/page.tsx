@@ -14,10 +14,10 @@ export default async function AdminUsersPage() {
   if (s.role !== "admin") redirect("/dashboard");
 
   const [users, vendors, venues, cases] = await Promise.all([
-    prisma.user.findMany({ orderBy: { createdAt: "asc" }, include: { vendor: true } }),
+    prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.vendor.findMany({
       orderBy: { name: "asc" },
-      include: { _count: { select: { users: true, orders: true } } },
+      include: { _count: { select: { orders: true } } },
     }),
     prisma.venue.findMany({
       orderBy: [{ type: "asc" }, { name: "asc" }],
@@ -31,26 +31,6 @@ export default async function AdminUsersPage() {
   ]);
   const pendingUsers = users.filter((u) => !u.approved && u.isActive);
 
-  // 顧客種別の自動判定：紐付いた案件の種別から（ブライダル／宴会／その他）
-  const coupleIds = users.filter((u) => u.role === "couple").map((u) => u.id);
-  const memberships = coupleIds.length > 0
-    ? await prisma.caseMember.findMany({
-        where: { userId: { in: coupleIds } },
-        include: { case: { select: { caseType: true } } },
-      })
-    : [];
-  const TYPE_LABEL: Record<string, string> = { wedding: "ブライダル", party: "宴会" };
-  const customerTypeOf = (userId: string): string => {
-    const types = memberships.filter((m) => m.userId === userId).map((m) => m.case.caseType);
-    if (types.length === 0) return "未紐付け";
-    const labels = [...new Set(types.map((t) => TYPE_LABEL[t] ?? "その他"))];
-    return labels.join("・");
-  };
-
-  // 区分：社員／外注（業者）／顧客
-  const STAFF_ROLES = ["admin", "manager", "planner", "chef", "audio", "mc", "service"];
-  const groupOf = (u: (typeof users)[number]): "staff" | "vendor" | "customer" =>
-    u.role === "couple" ? "customer" : u.vendorId || !STAFF_ROLES.includes(u.role) ? "vendor" : "staff";
 
   return (
     <>
@@ -65,18 +45,13 @@ export default async function AdminUsersPage() {
       </p>
       <UsersAdmin
         meId={s.userId}
-        vendors={vendors.map((v) => ({ id: v.id, name: v.name }))}
-        users={users.filter((u) => u.role !== "couple" && (u.approved || !u.isActive)).map((u) => ({
-          id: u.id, name: u.name, email: u.email, role: u.role,
-          isActive: u.isActive, vendorName: u.vendor?.name ?? null,
-          group: groupOf(u),
-          customerType: u.role === "couple" ? customerTypeOf(u.id) : null,
+        users={users.filter((u) => u.role !== "couple" && !u.vendorId).map((u) => ({
+          id: u.id, name: u.name, email: u.email, role: u.role, isActive: u.isActive,
         }))}
       />
       <VendorsAdmin
         vendors={vendors.map((v) => ({
-          id: v.id, name: v.name, category: v.category,
-          userCount: v._count.users, orderCount: v._count.orders,
+          id: v.id, name: v.name, category: v.category, orderCount: v._count.orders,
         }))}
       />
       <VenuesAdmin

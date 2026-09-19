@@ -77,11 +77,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span aria-hidden>{n.icon}</span><span className="nav-label">{n.label}</span>
           </Link>
         ))}
-        {s.vendorId && (
-          <Link href={`/vendors/${s.vendorId}`} className="nav-item" title="自社ページ">
-            <span aria-hidden>🏪</span><span className="nav-label">自社ページ</span>
-          </Link>
-        )}
         {["admin", "manager", "planner"].includes(s.role) && (
           <Link href="/approvals" className="nav-item" title="承認待ち">
             <span aria-hidden>✅</span><span className="nav-label">承認待ち
@@ -164,7 +159,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </div>
       {/* スマホ用の下部ナビ（720px以下で表示）。お客様は自分の案件タブへ直行するアプリ風ナビ */}
-      <MobileNav role={s.role} vendorId={s.vendorId ?? null} pendingCount={pendingCount}
+      <MobileNav role={s.role} pendingCount={pendingCount}
         coupleCaseId={coupleCase?.case.id ?? null} />
     </div>
   );

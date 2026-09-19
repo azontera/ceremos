@@ -12,8 +12,8 @@ type Level = "edit" | "view" | "scoped" | "none";
 export const ROLES: Record<string, string> = {
   admin: "管理者", manager: "支配人", planner: "ブライダルプランナー",
   chef: "料理長", audio: "音響スタッフ", mc: "司会者", dress: "ドレス担当",
-  florist: "装花担当", photo: "写真・映像担当", print: "印刷会社",
-  gift: "引出物会社", service: "サービススタッフ", couple: "顧客（新郎新婦・宴会）",
+  florist: "装花担当", photo: "写真・映像担当",
+  service: "サービススタッフ", couple: "顧客（新郎新婦・宴会）",
 };
 
 const P: Record<string, Partial<Record<Module, Level>>> = {
@@ -26,8 +26,6 @@ const P: Record<string, Partial<Record<Module, Level>>> = {
   dress:   { cases:"view",chat:"edit",meetings:"view",orders:"scoped",rundown:"view",live:"view",calendar:"view" },
   florist: { cases:"view",chat:"edit",meetings:"view",orders:"scoped",rundown:"view",live:"view",calendar:"view" },
   photo:   { cases:"view",chat:"edit",meetings:"view",orders:"scoped",songs:"view",rundown:"view",live:"edit",calendar:"view" },
-  print:   { cases:"scoped",chat:"edit",orders:"scoped",seating:"view" },
-  gift:    { cases:"scoped",chat:"edit",orders:"scoped" },
   service: { cases:"view",chat:"edit",meetings:"view",meals:"view",rundown:"view",seating:"view",live:"edit",calendar:"view" },
   // couple: 「アプリに沿えば誰でもプランナーになれる」— 楽曲・席次に加え進行表（司会台本）も自分で作成できる。
   // 見積は閲覧＋カタログ追加（定価のみ・専用API）。値引き等の見積編集はプランナー以上

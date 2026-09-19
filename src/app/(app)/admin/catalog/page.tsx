@@ -13,7 +13,6 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 // 🛍 カタログ管理 — プランナー・支配人・管理者が式場品目＋全業者の品目を登録・編集できる
-// （業者は自分の業者ページから自社カタログのみ編集可能）
 export default async function AdminCatalogPage() {
   const s = await getSession();
   if (!s) redirect("/login");
@@ -40,12 +39,11 @@ export default async function AdminCatalogPage() {
         <h2>🛍 カタログ管理</h2>
         <span className="pill gray">全{items.length}品目</span>
         <div style={{ flex: 1 }} />
-        <a className="btn sm" href="/catalog" target="_blank" title="お客様に共有できる公開ショーケース（URLだけで誰でも閲覧可）">✨ フル画面カタログ</a>
         <CatalogDeleteAllButton count={items.length} />
       </div>
       <p style={{ fontSize: 11.5, color: "var(--text3)", marginBottom: 6 }}>
         ここに登録した品目は、お客様・プランナーの案件「🛍 カタログ」タブに表示され、選ぶだけで見積（定価）に反映されます。
-        業者も自分の業者ページから自社カタログを編集できます。出店は1カテゴリ最大3店舗です。
+        出店は1カテゴリ最大3店舗です。
       </p>
 
       {/* 式場（自社）品目：会場費・自社料理・その他 */}
@@ -67,7 +65,7 @@ export default async function AdminCatalogPage() {
         />
       ))}
       {vendors.length === 0 && (
-        <div className="card" style={{ marginTop: 14 }}><div className="empty">業者が未登録です（管理→ユーザー・権限の業者マスタ、または業者のセルフ登録で追加できます）</div></div>
+        <div className="card" style={{ marginTop: 14 }}><div className="empty">業者が未登録です（管理→ユーザー・権限の業者マスタで追加できます）</div></div>
       )}
     </>
   );

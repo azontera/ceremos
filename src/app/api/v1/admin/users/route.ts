@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
         name: b.name.trim(),
         email: b.email.trim().toLowerCase(),
         role: b.role,
-        vendorId: b.vendorId || null,
         passwordHash: await bcrypt.hash(String(b.password), 10),
       },
     });

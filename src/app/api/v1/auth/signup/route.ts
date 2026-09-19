@@ -60,49 +60,6 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json({ ok: true, quick: true }, { status: 201 });
   }
-  // ===== 業者（お取引先）のセルフ登録 =====
-  // 店舗名・カテゴリ・担当者名・メール・パスワードで登録 → 承認前でも10時間は仮利用可
-  // 10時間経過後は承認まで利用停止（データは残る）。否認＝削除で消える
-  if (b?.accountType === "vendor") {
-    const vendorName = String(b.vendorName ?? "").trim();
-    const category = String(b.category ?? "").trim();
-    const VENDOR_ROLE: Record<string, string> = {
-      dress: "dress", florist: "florist", catering: "chef", audio: "audio", mc: "mc",
-      photo: "photo", video: "photo", gift: "gift", print: "print", beauty: "dress",
-    };
-    if (!vendorName || !VENDOR_ROLE[category]) {
-      return NextResponse.json({ error: "店舗名とカテゴリを入力してください" }, { status: 400 });
-    }
-    if (!name?.trim() || !email?.trim() || !password) {
-      return NextResponse.json({ error: "担当者名・メールアドレス・パスワードを入力してください" }, { status: 400 });
-    }
-    const policyErrV = validatePassword(String(password));
-    if (policyErrV) return NextResponse.json({ error: policyErrV }, { status: 400 });
-    const normEmailV = String(email).trim().toLowerCase();
-    const dupV = await prisma.user.findUnique({ where: { email: normEmailV } });
-    if (dupV) return NextResponse.json({ error: "このメールアドレスは既に登録されています" }, { status: 409 });
-
-    // 既存の同名業者に相乗り／なければ新規作成
-    const vendor =
-      (await prisma.vendor.findFirst({ where: { name: vendorName, category } })) ??
-      (await prisma.vendor.create({ data: { name: vendorName, category } }));
-    const uv = await prisma.user.create({
-      data: {
-        name: String(name).trim(),
-        email: normEmailV,
-        passwordHash: await bcrypt.hash(String(password), 10),
-        role: VENDOR_ROLE[category],
-        vendorId: vendor.id,
-        phone: phone?.trim() || null,
-        profileJson: JSON.stringify({ accountType: "vendor", vendorName, category }),
-        approved: false,      // プランナー確認待ち（10時間は仮利用可）
-        emailVerified: true,
-      },
-    });
-    await audit(uv.id, "signup_vendor", "user", uv.id, { vendorId: vendor.id, category });
-    return NextResponse.json({ ok: true, vendor: true, vendorId: vendor.id }, { status: 201 });
-  }
-
   // ===== 通常のセルフ登録：お名前・メールアドレス・パスワードだけ =====
   // （ふりがな・生年月日・ご住所などの詳細は、承認後のプロフィール・アンケートで追記）
   if (!name?.trim() || !email?.trim() || !password) {

@@ -1,4 +1,4 @@
-// 業者カタログ品目の編集・削除（スタッフ＝全品目／業者ユーザー＝自社品目のみ）
+// カタログ品目の編集・削除（スタッフのみ）
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -11,8 +11,7 @@ async function authz(itemId: string) {
   const item = await prisma.catalogItem.findUnique({ where: { id: itemId } });
   if (!item) return { error: NextResponse.json({ error: "not found" }, { status: 404 }) };
   const isStaff = ["admin", "manager", "planner"].includes(s.role);
-  const isOwn = !!s.vendorId && s.vendorId === item.vendorId;
-  if (!isStaff && !isOwn) return { error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
+  if (!isStaff) return { error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
   return { s, item };
 }
 

@@ -22,8 +22,8 @@ const ST: Record<string, { label: string; cls: string; next?: { to: string; labe
 const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 
 export function OrdersPanel({
-  caseId, orders, vendors, canEdit, isVendor,
-}: { caseId: string; orders: Order[]; vendors: Vendor[]; canEdit: boolean; isVendor: boolean }) {
+  caseId, orders, vendors, canEdit,
+}: { caseId: string; orders: Order[]; vendors: Vendor[]; canEdit: boolean }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState("");
@@ -107,7 +107,7 @@ export function OrdersPanel({
                   <td>{yen(o.amount)}</td>
                   <td><span className={`pill ${overdue ? "red" : st.cls}`}>{st.label}{overdue ? "・期限超過" : ""}</span></td>
                   <td>
-                    {st.next && (canEdit || isVendor) && (
+                    {st.next && canEdit && (
                       <button className="btn sm" onClick={() => setStatus(o.id, st.next!.to)}>{st.next.label}</button>
                     )}
                   </td>
@@ -117,7 +117,6 @@ export function OrdersPanel({
           </tbody>
         </table>
       </div>
-      {isVendor && <p style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 10 }}>※ 業者アカウントのため自社宛の発注のみ表示しています。</p>}
     </>
   );
 }

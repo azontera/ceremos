@@ -10,7 +10,6 @@ export type Session = {
   userId: string;
   name: string;
   role: string;
-  vendorId?: string | null;
 };
 
 export async function createSession(s: Session, remember = false) {

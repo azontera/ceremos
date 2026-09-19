@@ -112,7 +112,6 @@ export default async function CaseDetailPage({
     .map((m) => m.nextAt)
     .filter((x): x is Date => !!x && x > new Date())
     .sort((a, b) => a.getTime() - b.getTime())[0];
-  const orders = s.vendorId ? c.orders.filter((o) => o.vendorId === s.vendorId) : c.orders;
 
   // 案件カードは全セクションを常に表示するため、必要なデータはすべてここでまとめて取得する
   const [
@@ -446,9 +445,8 @@ export default async function CaseDetailPage({
           <OrdersPanel
             caseId={c.id}
             canEdit={can(s.role, "orders", "edit")}
-            isVendor={!!s.vendorId}
             vendors={vendors.map((v) => ({ id: v.id, name: v.name, category: v.category }))}
-            orders={orders.map((o) => ({
+            orders={c.orders.map((o) => ({
               id: o.id, category: o.category, amount: o.amount, status: o.status,
               note: o.note, dueAt: o.dueAt ? o.dueAt.toISOString() : null,
               vendorName: o.vendor?.name ?? null,

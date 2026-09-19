@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type Vendor = { id: string; name: string; category: string; userCount: number; orderCount: number };
+type Vendor = { id: string; name: string; category: string; orderCount: number };
 const CATEGORIES: [string, string][] = [
   ["dress", "ドレス"], ["florist", "装花"], ["catering", "料理"], ["audio", "音響"],
   ["mc", "司会"], ["photo", "写真"], ["video", "映像"], ["gift", "引出物"],
@@ -55,7 +55,7 @@ export function VendorsAdmin({ vendors }: { vendors: Vendor[] }) {
 
       <div className="card" style={{ overflowX: "auto" }}>
         <table className="tbl">
-          <thead><tr><th>業者名</th><th>カテゴリ</th><th>所属ユーザー</th><th>発注実績</th><th>操作</th></tr></thead>
+          <thead><tr><th>業者名</th><th>カテゴリ</th><th>発注実績</th><th>操作</th></tr></thead>
           <tbody>
             {vendors.length === 0 && <tr><td colSpan={5} className="empty">業者が登録されていません</td></tr>}
             {vendors.map((v) => (
@@ -81,10 +81,9 @@ export function VendorsAdmin({ vendors }: { vendors: Vendor[] }) {
                     <td><span className="pill blue">{catLabel(v.category)}</span></td>
                   </>
                 )}
-                <td>{v.userCount}名</td>
                 <td>{v.orderCount}件</td>
                 <td style={{ whiteSpace: "nowrap" }}>
-                  <Link className="btn sm" href={`/vendors/${v.id}`}>業者ページ</Link>{" "}
+                  <Link className="btn sm" href={`/print/vendor/${v.id}`} target="_blank">🖨 発注書</Link>{" "}
                   {editId !== v.id && <button className="btn sm" onClick={() => setEditId(v.id)}>編集</button>}{" "}
                   <button className="btn sm" onClick={() => {
                     if (confirm(`「${v.name}」を削除しますか？`)) call(`/api/v1/admin/vendors/${v.id}`, "DELETE");
@@ -96,7 +95,7 @@ export function VendorsAdmin({ vendors }: { vendors: Vendor[] }) {
         </table>
       </div>
       <p style={{ fontSize: 11.5, color: "var(--text3)", marginTop: 8 }}>
-        ここで追加した業者は、発注の「発注先」やユーザー作成時の「所属業者」で選べるようになります。発注や所属ユーザーがある業者は削除できません。
+        ここで追加した業者は、発注の「発注先」やカタログ管理で選べるようになります。発注がある業者は削除できません。
       </p>
     </>
   );
