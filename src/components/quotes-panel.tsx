@@ -81,24 +81,6 @@ export function QuotesPanel({
   const [tplChoices, setTplChoices] = useState<{ id: string; name: string; items: Item[]; packId?: string; category?: string }[] | null>(null);
   // ウィザード：ステップ1で種別（ブライダル／宴会）を選び、ステップ2でプランを選ぶ
   const [wizCat, setWizCat] = useState<"" | "bridal" | "banquet" | "other">("");
-  // 📥 この案件の内容をテンプレート一式として保存
-  const [savingTpl, setSavingTpl] = useState(false);
-  const [saveTplMsg, setSaveTplMsg] = useState("");
-  async function saveAsTemplate() {
-    const name = prompt("テンプレート名を入力してください（例：ガーデン挙式×ビュッフェ 60名プラン）");
-    if (!name?.trim()) return;
-    const category = (prompt("種別を入力（bridal=ブライダル／banquet=宴会／other=その他）", "bridal") ?? "other").trim();
-    setSavingTpl(true); setSaveTplMsg("");
-    const res = await fetch(`/api/v1/cases/${caseId}/save-as-template`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), category }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSavingTpl(false);
-    setSaveTplMsg(res.ok ? `✅「${data.name}」としてテンプレートに保存しました（管理→テンプレートで確認できます）` : `⚠ ${data.error ?? "保存に失敗しました"}`);
-  }
-
   const latest = quotes[0];
   const prev = quotes[1];
 
@@ -420,7 +402,6 @@ export function QuotesPanel({
         </div>
       )}
 
-      {saveTplMsg && <div className="card" style={{ padding: "8px 14px", marginBottom: 10, fontSize: 12.5 }}>{saveTplMsg}</div>}
       <div className="card" style={{ overflowX: "auto" }}>
         <table className="tbl">
           <thead><tr><th>Ver</th><th>作成日</th><th>合計（税込）</th><th>変更メモ</th><th>ステータス</th><th>操作</th></tr></thead>
@@ -462,10 +443,6 @@ export function QuotesPanel({
                       <button className="btn sm" title={`承認を取り消して「${term("couple", caseType)}確認済」に差し戻します`}
                         onClick={() => { if (confirm(`Ver.${q.version} の承認を取り消しますか？`)) setStatus(q.id, "confirmed"); }}>承認を取り消す</button>
                     )}{" "}
-                    {canEdit && ["confirmed", "approved"].includes(q.status) && q.id === latest?.id && (
-                      <button className="btn sm" disabled={savingTpl} title="この案件の見積・料理・進行表・リソースをテンプレート一式として登録します"
-                        onClick={saveAsTemplate}>{savingTpl ? "保存中…" : "📥 テンプレとして保存"}</button>
-                    )}
                     {canEdit && q.status === "archived" && (
                       <button className="btn sm" onClick={() => setStatus(q.id, "draft")}>下書きに戻す</button>
                     )}{" "}

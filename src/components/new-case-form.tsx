@@ -16,7 +16,7 @@ export function NewCaseForm({
   const [caseType, setCaseType] = useState("wedding");
   const [venueMode, setVenueMode] = useState<string>(venues[0]?.id ?? "free");
   const meta = caseTypes.find((t) => t.value === caseType) ?? typeMeta(caseType);
-  // 📦 テンプレ一式（AI生成pack）：選ぶと作成時に見積(下書き)・料理・進行台本・席次・リソースまで自動作成
+  // 📦 テンプレ一式（pack）：選ぶと作成時に見積(下書き)・料理・進行台本・席次・リソースまで自動作成
   type Pack = { id: string; name: string; category: string; description: string; summary: { quoteCount: number; quoteTotal: number; menuCount: number; rundownCount: number; staffCount: number; equipmentCount: number } };
   const [packs, setPacks] = useState<Pack[]>([]);
   const [packId, setPackId] = useState("");
@@ -103,7 +103,7 @@ export function NewCaseForm({
         </div>
       </div>
 
-      {/* 📦 テンプレ一式（AI生成）：選ぶと見積・料理・進行台本・席次・STAFFリソースまで一括セットアップ */}
+      {/* 📦 テンプレ一式：選ぶと見積・料理・進行台本・席次・STAFFリソースまで一括セットアップ */}
       {packs.length > 0 && (
         <div className="card" style={{ padding: "14px 18px", marginBottom: 16 }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>

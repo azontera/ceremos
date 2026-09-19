@@ -1,11 +1,9 @@
 "use client";
-// テンプレート管理：AI生成テンプレ一式（pack）の読み込み・編集・削除＋AIプロンプトのコピー
+// テンプレート管理：テンプレ一式（pack）JSONの読み込み・編集・削除
 // パック＝見積・料理・進行台本・会場リソース（STAFF/設備）がひとまとまりのJSON。
 // 案件への適用は「コピー」なので、適用後にテンプレを編集しても案件側には同期しない。
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { buildAiPrompt, PACK_JSON_SCHEMA } from "@/lib/template-pack-prompt";
-import { buildSpecMarkdown } from "@/lib/template-pack-spec";
 
 type Tmpl = { id: string; type: string; name: string; bodyJson: string; isSystem: boolean };
 const TYPE_LABEL: Record<string, string> = {
@@ -39,7 +37,6 @@ export function TemplatesAdmin({ templates, canEdit }: { templates: Tmpl[]; canE
   const [specOpen, setSpecOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const packs = templates.filter((t) => t.type === "pack");
@@ -106,43 +103,16 @@ export function TemplatesAdmin({ templates, canEdit }: { templates: Tmpl[]; canE
     router.refresh();
   }
 
-  // 📖 要件をMarkdownファイルとしてダウンロード（AIに渡す・社内共有用）
-  function downloadSpecMd() {
-    const blob = new Blob([buildSpecMarkdown()], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "CEREMOSテンプレ作成要件.md";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  async function copyPrompt() {
-    try {
-      await navigator.clipboard.writeText(buildAiPrompt());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // クリップボード不可の環境：プロンプトを表示
-      prompt("以下をコピーしてAIに貼り付けてください", buildAiPrompt());
-    }
-  }
-
   return (
     <>
-      {/* ヘッダー：主要操作は2つ（コピー・読み込み）だけ。写真はカタログへ */}
+      {/* ヘッダー：主要操作は読み込みだけ。写真はカタログへ */}
       <div className="section-h" style={{ margin: "0 0 10px", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 12.5, color: "var(--text3)" }}>
-          AIで作ったJSONを読み込むと、見積・料理・進行台本・<b>カタログ（写真つき）</b>まで一括登録されます。
+          テンプレ一式（JSON）を読み込むと、見積・料理・進行台本・<b>カタログ（写真つき）</b>まで一括登録されます。
         </span>
         <div style={{ flex: 1 }} />
         {canEdit && (
-          <>
-            <button className="btn" onClick={copyPrompt} title="AIに貼り付けるだけでJSONを作れるプロンプトをコピー">
-              {copied ? "✅ コピーしました" : "🤖 AIプロンプトをコピー"}
-            </button>
-            <button className="btn primary" onClick={() => setImportOpen((o) => !o)}>📥 AIテンプレ読み込み</button>
-          </>
+          <button className="btn primary" onClick={() => setImportOpen((o) => !o)}>📥 テンプレ一式（JSON）を読み込み</button>
         )}
       </div>
       {/* 写真はカタログに入る。導線を1本用意 */}
@@ -158,9 +128,9 @@ export function TemplatesAdmin({ templates, canEdit }: { templates: Tmpl[]; canE
         <div className="card" style={{ padding: 16, marginBottom: 14, fontSize: 12, lineHeight: 1.9 }}>
           <div style={{ fontWeight: 800, fontSize: 13.5, marginBottom: 6 }}>ⓘ 使い方</div>
           <div style={{ marginBottom: 12, color: "var(--text2)" }}>
-            ① <b>🤖 AIプロンプトをコピー</b> → ChatGPT・Claude等に貼り付けて送信（式場に合わせて内容を書き換えてOK）<br />
-            ② AIが出力したJSONをコピー → <b>📥 AIテンプレ読み込み</b> に貼り付けて登録<br />
-            ③ 新規案件ウィザード・お客様の新規ウィザードで選べるようになります。<b>🛍 カタログ</b>（業者・品目・<b>写真</b>）も同じJSONに含めれば一括登録され、<a href="/admin/catalog">カタログ画面</a>で写真つきで確認できます
+            ① 下記の要件に沿ってテンプレ一式のJSONを用意する（詳細は docs/template-pack-spec.md）<br />
+            ② JSONを <b>📥 テンプレ一式（JSON）を読み込み</b> に貼り付け、またはファイルから登録<br />
+            ③ 新規案件・見積の「新Ver作成」で選べるようになります。<b>🛍 カタログ</b>（業者・品目・<b>写真</b>）も同じJSONに含めれば一括登録され、<a href="/admin/catalog">カタログ画面</a>で写真つきで確認できます
           </div>
           <div style={{ fontWeight: 800, fontSize: 13.5, marginBottom: 6 }}>📖 テンプレ一式（pack）作成の要件</div>
           <div style={{ display: "grid", gap: 4 }}>
@@ -174,11 +144,7 @@ export function TemplatesAdmin({ templates, canEdit }: { templates: Tmpl[]; canE
             <div><b>🪑 seating：</b><code>perTable</code>=1卓あたり人数（席次の自動レイアウトに使用）</div>
             <div style={{ color: "var(--text3)" }}><b>適用ルール：</b>適用はコピー方式（適用後の編集はテンプレと同期しない）。見積は常に新バージョン(下書き)を作成。料理・席次・リソースは案件に既存データが無いときのみ、進行表は未編集（台本なし・全曲未定）のときのみ作成される</div>
           </div>
-          <div style={{ fontWeight: 700, margin: "10px 0 4px" }}>スキーマ例（コメントは説明用。実際のJSONには書かない）</div>
-          <pre style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, fontSize: 10.5, overflowX: "auto", whiteSpace: "pre", margin: 0 }}>{PACK_JSON_SCHEMA}</pre>
           <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-            {canEdit && <button className="btn sm" onClick={copyPrompt}>{copied ? "✅ コピーしました" : "🤖 この要件入りのAIプロンプトをコピー"}</button>}
-            <button className="btn sm" onClick={downloadSpecMd}>⬇ この要件をMDファイルでダウンロード</button>
             <button className="btn sm" onClick={() => setSpecOpen(false)}>閉じる</button>
           </div>
         </div>
@@ -187,7 +153,7 @@ export function TemplatesAdmin({ templates, canEdit }: { templates: Tmpl[]; canE
       {/* インポート */}
       {importOpen && (
         <div className="card" style={{ padding: 16, marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>📥 AIが出力したJSONを貼り付け（単体でも配列でもOK・カタログ「ceremos-catalog」も同時に読み込めます）</div>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>📥 テンプレ一式のJSONを貼り付け（単体でも配列でもOK・カタログ「ceremos-catalog」も同時に読み込めます）</div>
           <textarea className="form-input" rows={10} value={importText}
             style={{ fontFamily: "monospace", fontSize: 11.5 }}
             placeholder='{"kind":"ceremos-template-pack","name":"…", …}  または  [ {…}, {…} ]'
@@ -233,7 +199,7 @@ export function TemplatesAdmin({ templates, canEdit }: { templates: Tmpl[]; canE
       )}
       {packs.length === 0 && (
         <div className="card"><div className="empty">
-          テンプレ一式はまだありません。「🤖 AIプロンプトをコピー」→ AIでJSONを生成 → 「📥 AIテンプレ読み込み」で登録してください。
+          テンプレ一式はまだありません。「📥 テンプレ一式（JSON）を読み込み」から登録してください。
         </div></div>
       )}
       <div className="grid" style={{ gap: 12 }}>

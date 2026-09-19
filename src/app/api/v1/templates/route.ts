@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
   const b = await req.json().catch(() => ({}));
 
-  // ===== AIテンプレ一式（pack）のインポート：単体 or 配列JSONを検証して登録 =====
+  // ===== テンプレ一式（pack）のインポート：単体 or 配列JSONを検証して登録 =====
   if (b.type === "pack" || b.import) {
     const raw = typeof b.bodyJson === "string" ? b.bodyJson : JSON.stringify(b.bodyJson ?? {});
     const { parseLenientJson } = await import("@/lib/json-lenient");

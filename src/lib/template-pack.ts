@@ -1,4 +1,4 @@
-// テンプレート・パック（AIで生成する「一式テンプレ」）
+// テンプレート・パック（JSONで読み込む「一式テンプレ」）
 // 1つのJSONに 見積・料理・進行台本・会場リソース（STAFF/設備）・ウィザード適合条件 をまとめる。
 // 適用時は案件へ「コピー」される（適用後にテンプレを編集しても案件へは同期しない／逆も同じ）。
 import { prisma } from "./db";
@@ -34,13 +34,6 @@ export type TemplatePack = {
   seating?: { perTable?: number };
 };
 
-export const PACK_STYLE_LABELS: [string, string][] = [
-  ["chapel", "⛪ チャペル挙式"], ["garden", "🌿 ガーデン"], ["night", "🌙 ナイト"],
-  ["wakon", "🎎 和婚・神前"], ["small", "👨‍👩‍👧 少人数・会食"], ["casual", "🎈 カジュアル"],
-  ["formal", "🎩 フォーマル"], ["party", "🥂 宴会・パーティ"], ["ceremony", "🎖 式典"],
-  ["dinnershow", "🎤 ディナーショー"],
-];
-
 /** JSON文字列 → TemplatePack（検証つき）。エラー時は error を返す */
 export function parsePack(raw: string): { pack?: TemplatePack; error?: string } {
   let obj: unknown;
@@ -73,111 +66,6 @@ export function packSummary(p: TemplatePack) {
     staffCount: p.resources?.staff?.length ?? 0,
     equipmentCount: p.resources?.equipment?.length ?? 0,
   };
-}
-
-/** 実名トークンの逆置換：案件の実データ（進行表など）を汎用テンプレへ戻す */
-export function stripNameTokens(text: string | null | undefined, groom: string, bride: string): string | undefined {
-  if (!text) return undefined;
-  const gSei = groom.split(/[ 　]/)[0] || groom;
-  const bSei = bride.split(/[ 　]/)[0] || bride;
-  let out = text;
-  if (groom) out = out.split(groom).join("{新郎}");
-  if (bride && bride !== "―") out = out.split(bride).join("{新婦}");
-  if (gSei) out = out.split(gSei).join("{新郎姓}");
-  if (bSei && bSei !== "―") out = out.split(bSei).join("{新婦姓}");
-  return out;
-}
-
-/** スタッフ・設備ラベルの末尾番号（①②③ / (1)(2)）を除去（テンプレ化時の重複展開防止） */
-export function stripLabelNumber(label: string): string {
-  return label.replace(/[①-⑮]$/, "").replace(/\(\d+\)$/, "").trim();
-}
-
-/**
- * 実際の案件（見積・料理・進行表・リソース・席次）から TemplatePack を組み立てる
- * 「カタログで組んだ見積もりをそのままテンプレの元にする」ための逆変換
- */
-export async function buildPackFromCase(
-  caseId: string,
-  opts: { name: string; category?: "bridal" | "banquet" | "other"; description?: string },
-): Promise<{ pack?: TemplatePack; error?: string }> {
-  const c = await prisma.case.findUnique({
-    where: { id: caseId },
-    include: {
-      quotes: { include: { items: true }, orderBy: { version: "desc" } },
-      rundownItems: { orderBy: { sortOrder: "asc" } },
-      assignments: true,
-      seatingTables: true,
-    },
-  });
-  if (!c) return { error: "案件が見つかりません" };
-
-  const quote = c.quotes.find((q) => q.status === "approved") ?? c.quotes.find((q) => q.status === "confirmed") ?? c.quotes[0];
-  const menuItems = await prisma.menuItem.findMany({ where: { caseId }, orderBy: { sortOrder: "asc" } });
-  if (!quote && menuItems.length === 0 && c.rundownItems.length === 0) {
-    return { error: "この案件にはまだ見積・料理・進行表のデータがありません" };
-  }
-  const groom = c.groomName, bride = c.brideName;
-
-  const quoteItems: PackQuoteItem[] = (quote?.items ?? []).map((i) => ({
-    name: i.name, category: i.category, qty: i.qty, unitPrice: i.unitPrice,
-  }));
-  const menuPack: PackMenuItem[] = menuItems.map((m) => ({
-    course: m.course, name: m.name, desc: m.desc ?? undefined, cost: m.cost, price: m.price,
-  }));
-  const rundownPack: PackRundownItem[] = c.rundownItems.map((r) => ({
-    time: r.time,
-    title: stripNameTokens(r.title, groom, bride) ?? r.title,
-    note: stripNameTokens(r.note, groom, bride),
-    mcScript: stripNameTokens(r.mcScript, groom, bride),
-    durationMin: r.durationMin ?? undefined,
-    roles: r.roles || undefined,
-  }));
-
-  const staffRows = c.assignments.filter((a) => a.kind === "staff");
-  const equipRows = c.assignments.filter((a) => a.kind === "equipment");
-  const start = c.weddingDate;
-  const end = effectiveEnd(c.weddingDate, c.endTime);
-  const offsetMin = (d: Date, base: Date) => Math.round((d.getTime() - base.getTime()) / 60000);
-  // 同名（連番除去後）をまとめて1行に集約（人数展開の再現用にperGuestsは付けない＝そのままの人数で再現）
-  const dedupeByLabel = (rows: typeof staffRows) => {
-    const seen = new Map<string, PackResource>();
-    for (const r of rows) {
-      const label = stripLabelNumber(r.label);
-      if (!seen.has(label)) {
-        seen.set(label, { label, startOffsetMin: offsetMin(r.startsAt, start), endOffsetMin: offsetMin(r.endsAt, end) });
-      }
-    }
-    return [...seen.values()];
-  };
-
-  const tables = c.seatingTables;
-  const avgCap = tables.length > 0 ? Math.round(tables.reduce((s, t) => s + t.capacity, 0) / tables.length) : 8;
-
-  const guests = Math.max(1, c.guestCount || 60);
-  const budgetMan = quote ? Math.round(quote.total / 10000) : undefined;
-
-  const pack: TemplatePack = {
-    kind: "ceremos-template-pack",
-    version: 1,
-    name: opts.name,
-    category: opts.category ?? "other",
-    description: opts.description ?? `案件「${groom}${bride && bride !== "―" ? `・${bride}` : ""}」の実例から作成`,
-    wizard: {
-      guestMin: Math.max(1, Math.round(guests * 0.7)),
-      guestMax: Math.round(guests * 1.4),
-      ...(budgetMan ? { budgetManMin: Math.round(budgetMan * 0.75), budgetManMax: Math.round(budgetMan * 1.3) } : {}),
-    },
-    ...(quoteItems.length > 0 ? { quote: { items: quoteItems } } : {}),
-    ...(menuPack.length > 0 ? { menu: { items: menuPack } } : {}),
-    ...(rundownPack.length > 0 ? { rundown: { startTime: rundownPack[0]?.time, items: rundownPack } } : {}),
-    resources: {
-      staff: dedupeByLabel(staffRows),
-      equipment: dedupeByLabel(equipRows),
-    },
-    seating: { perTable: Math.max(2, Math.min(12, avgCap)) },
-  };
-  return { pack };
 }
 
 export type WizardAnswers = { style?: string; guests?: number; budgetMan?: number; timeSlot?: string };

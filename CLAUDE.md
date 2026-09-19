@@ -26,7 +26,7 @@ rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclu
 - サンドボックス環境でのPrisma生成回避策・詳細は `.claude/skills/verify-local/SKILL.md`（「型チェック」で発動）
 
 ## 主要ファイルマップ
-- テンプレは**AIテンプレ一式（type="pack"）方式**（内蔵テンプレ廃止済み）: `src/lib/template-pack.ts`（parsePack/scorePack/applyPackToCase/buildPackFromCase）・管理画面から読み込み。AIプロンプト=`src/lib/template-pack-prompt.ts`・配布用=`docs/AIデータ生成プロンプト.md`
+- テンプレは**テンプレ一式（type="pack"）JSON方式**（内蔵テンプレ廃止済み）: `src/lib/template-pack.ts`（parsePack/scorePack/applyPackToCase）・管理画面からJSONを読み込み。JSON要件=`docs/template-pack-spec.md`
 - `src/app/api/v1/cases/[id]/quotes/route.ts` … 見積保存時の自動セットアップ（料理／席次／リソース／進行表適用）
 - `src/components/quotes-panel.tsx` … 見積UI（新規=ウィザード、確認済/承認済は「新Ver作成」で編集）
 - `src/lib/rundown.ts` … recalcRundownTimes / fillNameTokens / applyRundownTemplateToCase / sceneForTitle

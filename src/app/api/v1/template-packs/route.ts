@@ -4,8 +4,7 @@ import { loadPacks, packSummary, scorePack, WizardAnswers } from "@/lib/template
 
 export const dynamic = "force-dynamic";
 
-// GET: テンプレ一式（パック）の一覧＋ウィザード回答によるおすすめ順
-// お客様（couple）も閲覧可（新規ウィザードでプランを選ぶため。内容は見積として本人に提示されるもの）
+// GET: テンプレ一式（パック）の一覧（新規案件フォーム・見積ウィザードで選択）
 // クエリ: style / guests / budgetMan / timeSlot（あればスコア順に並べ、reasonsを付ける）
 export async function GET(req: NextRequest) {
   const s = await getSession();
