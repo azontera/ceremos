@@ -67,7 +67,7 @@ export function AfterPanel({
             <button className="btn primary" disabled={busy}>{busy ? "追加中…" : "＋ 記録"}</button>
           </div>
           <p style={{ fontSize: 11.5, color: "var(--text3)", margin: "8px 0 0" }}>
-            ※ このタブは社内向けです（お客様アカウントには表示されません）。クレームは「対応中」の間、ダッシュボードに警告表示されます。
+            ※ この記録は社内向けです（お客様アカウントには表示されません）。クレームは「対応中」の間、ダッシュボードに警告表示されます。
           </p>
         </form>
       )}

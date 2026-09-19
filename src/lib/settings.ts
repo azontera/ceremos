@@ -26,8 +26,3 @@ export async function getSetting(key: string): Promise<string> {
 export async function setSetting(key: string, value: string) {
   await prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } });
 }
-
-export async function emailVerificationEnabled(): Promise<boolean> {
-  // メール認証機能は廃止（Resend連携を撤去したため）。登録は常に「管理者承認待ち」のみ。
-  return false;
-}

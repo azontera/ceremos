@@ -50,8 +50,7 @@ async function main() {
   const hasegawa = await u("長谷川 亮太", "audio@example.com", "audio");
   const okada = await u("岡田 千尋", "mc@example.com", "mc");
   const service1 = await u("佐野 未来", "service@example.com", "service");
-  const floristUser = await u("フローラ武蔵野 担当", "florist@example.com", "florist", florist.id);
-  const giftUser = await u("ギフト住吉 担当", "gift@example.com", "gift", gift.id);
+  const floristUser = await u("フローラ武蔵野 担当", "florist@example.com", "florist");
   const groomRen = await u("高橋 蓮", "ren.t@example.com", "couple");
   const brideMisaki = await u("佐藤 美咲", "misaki.s@example.com", "couple");
   const groomIto = await u("伊藤 大輝", "ito@example.com", "couple");
@@ -188,7 +187,7 @@ async function main() {
     const total = sumItems(items);
     if (isPast || isToday || cfg.quote === "approved") {
       await prisma.quote.create({
-        data: { caseId: c.id, version: 1, status: "approved", total, note: "最終確定版", createdBy: cfg.planner.id, items: { create: items } },
+        data: { caseId: c.id, version: 1, status: "confirmed", total, note: "最終確定版", createdBy: cfg.planner.id, items: { create: items } },
       });
     } else if (near || cfg.quote === "confirmed") {
       await prisma.quote.create({ data: { caseId: c.id, version: 1, status: "archived", total: total - 77000, note: "初回見積", createdBy: cfg.planner.id } });
@@ -290,7 +289,7 @@ async function main() {
   const caseTanaka = await makeCase({ g: "田中 慎吾", b: "松本 玲奈", d: 0, slot: 3, venue: hallB, guests: 55, planner: mori, status: "final_prep", members: [tera] });
 
   // 直近〜今後 12件
-  const caseIto = await makeCase({ g: "伊藤 大輝", b: "渡辺 結衣", d: 2, slot: 2, venue: hallB, guests: 82, planner: tera, status: "final_prep", email: "ito@example.com", members: [floristUser, giftUser, groomIto] });
+  const caseIto = await makeCase({ g: "伊藤 大輝", b: "渡辺 結衣", d: 2, slot: 2, venue: hallB, guests: 82, planner: tera, status: "final_prep", email: "ito@example.com", members: [floristUser, groomIto] });
   const caseNakajima = await makeCase({ g: "中島 健太", b: "藤井 里奈", d: 9, slot: 1, venue: hallA, guests: 78, planner: tera, status: "planning" });
   await makeCase({ g: "原田 大樹", b: "石川 美優", d: 16, slot: 2, venue: hallA, guests: 92, planner: tera, status: "planning" });
   await makeCase({ g: "清水 航", b: "森田 彩花", d: 17, slot: 2, venue: hallB, guests: 60, planner: tera, status: "planning" });

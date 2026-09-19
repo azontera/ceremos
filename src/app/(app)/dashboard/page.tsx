@@ -198,7 +198,7 @@ export default async function DashboardPage() {
           <div className="card-h">🚨 未対応のクレーム<span className="pill red">{d.openClaims.length}件</span></div>
           <div className="card-b">
             {d.openClaims.map((f) => (
-              <Link className="list-row" key={f.id} href={`/cases/${f.caseId}?tab=after`}>
+              <Link className="list-row" key={f.id} href={`/cases/${f.caseId}?tab=info#after`}>
                 <span className="dot" style={{ background: "var(--red)" }} />
                 <div className="t">
                   <b>{f.caseLabel}</b>

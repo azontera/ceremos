@@ -38,7 +38,6 @@ rsync -av --exclude node_modules --exclude .next --exclude prisma/dev.db --exclu
 - `src/components/seating-panel.tsx` … 席次表エディタ（ズーム・編集モード・実寸m・アレルギー⚠）
 - `src/components/new-case-form.tsx` … 新規案件（進行表は見積テンプレから自動生成）
 - `src/components/settings-admin.tsx` … 会場・設備マスタ（実寸m）／ロゴ／待機画像
-- `src/lib/freee.ts` + billing-panel … freee取引同期・CSV
 - `src/lib/db-backup.ts` … 破壊的一括処理前の自動バックアップ（VACUUM INTO・backups/40世代）。復元=`node scripts/restore-db.cjs`
 - `src/app/(app)/cases/[id]/page.tsx` … 案件詳細（タブ廃止・全セクション1ページ・アンカーリンク。coupleには発注/料理/リソース/請求非表示）
 

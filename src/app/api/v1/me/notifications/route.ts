@@ -49,7 +49,7 @@ export async function GET() {
     })),
     ...openClaims.map((f) => ({
       kind: "claim", label: `🚨 未対応クレーム：${f.body.slice(0, 30)}…`,
-      sub: f.case.groomName, href: `/cases/${f.caseId}?tab=after`,
+      sub: f.case.groomName, href: `/cases/${f.caseId}?tab=info#after`,
     })),
     ...overdueTasks.map((t) => ({
       kind: "task", label: `⏰ 期限超過タスク：${t.title.slice(0, 26)}`,

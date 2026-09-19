@@ -128,7 +128,7 @@ async function main() {
   ok("送信者に既読が反映される", msgs2.data.messages?.find((m) => m.body.includes("[TEST]"))?.readByOthers === true);
 
   // --- 見積フロー ---
-  console.log("■ 見積（版管理・承認フロー）");
+  console.log("■ 見積（版管理・確定フロー）");
   const q = await api(`/cases/${testCaseId}/quotes`, {
     method: "POST", cookie: tera.cookie,
     body: { items: [{ name: "テストコース", qty: 50, unitPrice: 20000 }], note: "[TEST]" },
@@ -136,12 +136,9 @@ async function main() {
   ok("見積を作成できる（合計自動計算）", q.status === 201 && q.data.quote?.total === 1000000);
   const qid = q.data.quote?.id;
   const confirm = await api(`/quotes/${qid}/status`, { method: "POST", cookie: tera.cookie, body: { status: "confirmed" } });
-  ok("確認済にできる", confirm.status === 200);
-  const approveByPlanner = await api(`/quotes/${qid}/status`, { method: "POST", cookie: tera.cookie, body: { status: "approved" } });
-  ok("プランナーは承認できない（403）", approveByPlanner.status === 403);
-  const manager = await login("manager@example.com");
-  const approve = await api(`/quotes/${qid}/status`, { method: "POST", cookie: manager.cookie, body: { status: "approved" } });
-  ok("支配人は承認できる", approve.status === 200);
+  ok("プランナーが確定できる", confirm.status === 200);
+  const approveLegacy = await api(`/quotes/${qid}/status`, { method: "POST", cookie: tera.cookie, body: { status: "approved" } });
+  ok("旧ステータス approved へは遷移できない（400）", approveLegacy.status === 400);
 
   // --- 発注 ---
   console.log("■ 発注");
@@ -178,18 +175,14 @@ async function main() {
   const denied = await api("/admin/users", { method: "POST", cookie: tera.cookie, body: { name: "x", email: "x@x.com", role: "service", password: "wedding2026" } });
   ok("プランナーはユーザーを作成できない（403）", denied.status === 403);
 
-  // --- 見積の削除・承認取り消し ---
-  console.log("■ 見積（削除・承認取り消し）");
+  // --- 見積の削除・確定取り消し ---
+  console.log("■ 見積（削除・確定取り消し）");
   const qDelDenied = await api(`/quotes/${qid}`, { method: "DELETE", cookie: tera.cookie });
-  ok("承認済みの見積は削除できない（400）", qDelDenied.status === 400);
-  const revoke = await api(`/quotes/${qid}/status`, { method: "POST", cookie: manager.cookie, body: { status: "confirmed" } });
-  ok("支配人は承認を取り消せる", revoke.status === 200);
-  const revokeByPlanner = await api(`/quotes/${qid}/status`, { method: "POST", cookie: manager.cookie, body: { status: "approved" } })
-    .then(() => api(`/quotes/${qid}/status`, { method: "POST", cookie: tera.cookie, body: { status: "confirmed" } }));
-  ok("プランナーは承認を取り消せない（403）", revokeByPlanner.status === 403);
-  await api(`/quotes/${qid}/status`, { method: "POST", cookie: manager.cookie, body: { status: "confirmed" } });
+  ok("確定済みの見積は削除できない（400）", qDelDenied.status === 400);
+  const revoke = await api(`/quotes/${qid}/status`, { method: "POST", cookie: tera.cookie, body: { status: "draft" } });
+  ok("プランナーが確定を取り消せる（下書きに戻る）", revoke.status === 200);
   const qDel = await api(`/quotes/${qid}`, { method: "DELETE", cookie: tera.cookie });
-  ok("差し戻し後は削除できる", qDel.status === 200);
+  ok("下書きに戻した後は削除できる", qDel.status === 200);
 
   // --- 請求・入金 ---
   console.log("■ 請求・入金");

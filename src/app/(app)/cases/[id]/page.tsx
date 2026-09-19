@@ -27,6 +27,7 @@ import { SeatingPanel } from "@/components/seating-panel";
 import { BillingPanel } from "@/components/billing-panel";
 import { CustomerAccountPanel } from "@/components/customer-account-panel";
 import { CaseInfoCard } from "@/components/case-info-card";
+import { AfterPanel } from "@/components/after-panel";
 import { DayVenueChart } from "@/components/day-venue-chart";
 import { LostCaseButton } from "@/components/lost-case-button";
 import { isBridal } from "@/lib/terms";
@@ -56,6 +57,7 @@ const COUPLE_TABS = [
   { key: "chat", label: "💬 チャット" },
 ];
 // 旧アンカー・旧タブ名との互換（スマホ下部ナビ・過去リンクを壊さない）
+// after（アフター記録）は 📌案件タブ末尾の #after セクション
 const TAB_ALIAS: Record<string, string> = {
   catalog: "quotes", orders: "quotes", meals: "quotes", billing: "quotes",
   steps: "info", after: "info",
@@ -148,7 +150,7 @@ export default async function CaseDetailPage({
   }).filter((x) => x.answers.length > 0 || x.basics.birthDate);
 
   const STAFF_ROLES = ["admin", "manager", "planner", "chef", "audio", "mc", "service", "dress", "photo"];
-  const [assignments, resourceVenues, staffUsers] = isStaff
+  const [assignments, resourceVenues, staffUsers, followups] = isStaff
     ? await Promise.all([
         prisma.assignment.findMany({
           where: { caseId: c.id },
@@ -157,8 +159,13 @@ export default async function CaseDetailPage({
         }),
         prisma.venue.findMany({ where: { type: { in: ["waiting", "kitchen"] } } }),
         prisma.user.findMany({ where: { role: { in: STAFF_ROLES }, isActive: true }, select: { id: true, name: true } }),
+        prisma.followUp.findMany({
+          where: { caseId: c.id },
+          include: { staff: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
       ])
-    : [[], [], []];
+    : [[], [], [], []];
 
   const jump: Record<string, string> = {
     "見積確定": "quotes", "発注確定": "quotes",
@@ -246,7 +253,7 @@ export default async function CaseDetailPage({
         </div>
       </>)}
 
-      {/* ===== 📌 案件タブ（基本情報・ToDo・失注・ヒヤリング） ===== */}
+      {/* ===== 📌 案件タブ（基本情報・ToDo・失注・ヒヤリング・アフター） ===== */}
       {isStaff && tab === "info" && (<>
       {can(s.role, "cases", "edit") && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
@@ -342,6 +349,19 @@ export default async function CaseDetailPage({
         </div></div>
       )}
       </div>
+
+      {/* 📮 アフター（社内向け：アフター連絡・引き継ぎ・クレーム記録。ダッシュボードの未対応クレームはここへ） */}
+      <div className="section-h" id="after" style={{ marginTop: 24 }}><h2>📮 アフター</h2>
+        <span style={{ fontSize: 11.5, color: "var(--text3)" }}>アフター連絡・引き継ぎ・クレームの記録（お客様には表示されません）</span>
+      </div>
+      <AfterPanel
+        caseId={c.id}
+        canEdit={can(s.role, "meetings", "edit") || can(s.role, "cases", "edit")}
+        followups={followups.map((f) => ({
+          id: f.id, type: f.type, body: f.body, status: f.status,
+          staffName: f.staff?.name ?? null, createdAt: f.createdAt.toISOString(),
+        }))}
+      />
       </>)}
 
       {/* ===== 🏛 リソースタブ（施設・設備・スタッフの1日タイムライン） ===== */}
